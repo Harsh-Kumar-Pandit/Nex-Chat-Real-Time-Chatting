@@ -52,13 +52,11 @@ const ProfileInfo = () => {
           </Avatar>
         </button>
 
-         {/* Name + edit */}
         <div className="flex-1 flex items-center gap-2 min-w-0">
           <p className="text-white text-sm font-semibold truncate">
             {userInfo?.firstName || userInfo?.email}
           </p>
 
-          {/* edit icon */}
           <button
             onClick={() => navigate("/profile")}
             className="text-gray-400 hover:text-violet-400 transition"

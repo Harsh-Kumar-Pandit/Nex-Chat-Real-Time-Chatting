@@ -50,9 +50,7 @@ export const getContactsForDMList = async (request, response) => {
           $or: [{ sender: userId }, { recipient: userId }],
         },
       },
-      {
-        $sort: { timestamp: -1 },
-      },
+      { $sort: { createdAt: -1 } }, 
       {
         $group: {
           _id: {
@@ -62,7 +60,9 @@ export const getContactsForDMList = async (request, response) => {
               else: "$sender",
             },
           },
-          lastMessageTime: { $first: "$timestamp" },
+          lastMessageTime: { $first: "$createdAt" }, 
+          lastMessageContent: { $first: "$content" },
+          lastMessageType: { $first: "$messageType" },
         },
       },
       {
@@ -73,9 +73,7 @@ export const getContactsForDMList = async (request, response) => {
           as: "contactInfo",
         },
       },
-      {
-        $unwind: "$contactInfo",
-      },
+      { $unwind: "$contactInfo" },
       {
         $project: {
           _id: 1,
@@ -85,41 +83,32 @@ export const getContactsForDMList = async (request, response) => {
           lastName: "$contactInfo.lastName",
           image: "$contactInfo.image",
           color: "$contactInfo.color",
+          lastMessage: {
+            content: "$lastMessageContent",
+            messageType: "$lastMessageType",
+          },
         },
       },
-      {
-        $sort: { lastMessageTime: -1 },
-      },
+      { $sort: { lastMessageTime: -1 } },
     ]);
 
     return response.status(200).json({ contacts });
-
   } catch (error) {
     console.log(error);
     return response.status(500).send("Internal Server Error");
   }
 };
+export const getAllContacts = async (request, response) => {
+  try {
+    const users = await User.find(
+      { _id: { $ne: request.userId } },
+      "firstName lastName email image color" 
+    );
 
-export const getAllContacts = async (request, response, next) => {
-try {
+    return response.status(200).json({ contacts: users });
 
-const users = await User.find(
-  { _id: { $ne: request.userId } },
-  "firstName lastName email"
-);
-
-const contacts = users.map((user) => ({
-  label: user.firstName
-    ? `${user.firstName} ${user.lastName ?? ""}`
-    : user.email,
-  value: user._id,
-}));
-
-return response.status(200).json({ contacts });
-
-
-} catch (error) {
-console.log(error);
-return response.status(500).send("Internal Server Error");
-}
+  } catch (error) {
+    console.log(error);
+    return response.status(500).send("Internal Server Error");
+  }
 };

@@ -33,15 +33,21 @@ const MessageBar = () => {
         messageType: "text",
         fileUrl: undefined,
       });
-
-      setMessage("");
+    } else if (selectedChatType === "channel") {
+      socket.emit("sendChannelMessage", {
+        sender: userInfo.id,
+        content: message,
+        channelId: selectedChatData._id,
+        messageType: "text",
+        fileUrl: undefined,
+      });
     }
+
+    setMessage("");
   };
 
   const handelAttachmentClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
+    if (fileInputRef.current) fileInputRef.current.click();
   };
 
   const handleAttachmentChange = async (event) => {
@@ -52,11 +58,9 @@ const MessageBar = () => {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await apiClient.post(
-        UPLOAD_FILE_ROUTES,
-        formData,
-        { withCredentials: true }
-      );
+      const response = await apiClient.post(UPLOAD_FILE_ROUTES, formData, {
+        withCredentials: true,
+      });
 
       if (response.status === 200 && response.data) {
         if (selectedChatType === "contact") {
@@ -67,8 +71,18 @@ const MessageBar = () => {
             messageType: "file",
             fileUrl: response.data.filePath,
           });
+        } else if (selectedChatType === "channel") {
+          socket.emit("sendChannelMessage", {
+            sender: userInfo.id,
+            content: undefined,
+            channelId: selectedChatData._id,
+            messageType: "file",
+            fileUrl: response.data.filePath,
+          });
         }
       }
+      // reset input
+      event.target.value = "";
     } catch (error) {
       console.log(error);
     }
@@ -80,17 +94,12 @@ const MessageBar = () => {
         setEmojiPickerOpen(false);
       }
     }
-
     document.addEventListener("mousedown", handleClickOutside);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   return (
     <div className="h-[10vh] bg-[#1b1c24] border-t border-[#2f303b] flex items-center px-4 md:px-8">
-
       <div className="flex items-center w-full bg-[#2a2b33] rounded-full px-4 py-2 gap-3">
 
         <input
@@ -107,23 +116,12 @@ const MessageBar = () => {
           }}
         />
 
-        <button
-          className="text-neutral-400 hover:text-white transition"
-          onClick={handelAttachmentClick}
-        >
+        <button className="text-neutral-400 hover:text-white transition" onClick={handelAttachmentClick}>
           <FiPaperclip size={20} />
-          <input
-            type="file"
-            className="hidden"
-            ref={fileInputRef}
-            onChange={handleAttachmentChange}
-          />
+          <input type="file" className="hidden" ref={fileInputRef} onChange={handleAttachmentChange} />
         </button>
 
-        <button
-          className="text-neutral-400 hover:text-white transition"
-          onClick={() => setEmojiPickerOpen(true)}
-        >
+        <button className="text-neutral-400 hover:text-white transition" onClick={() => setEmojiPickerOpen(true)}>
           <HiOutlineEmojiHappy size={22} />
         </button>
 

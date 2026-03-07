@@ -56,12 +56,10 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // validation
     if (!email || !password) {
       return res.status(400).send("Email and password are required.");
     }
 
-    // check user
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).send("User not found.");

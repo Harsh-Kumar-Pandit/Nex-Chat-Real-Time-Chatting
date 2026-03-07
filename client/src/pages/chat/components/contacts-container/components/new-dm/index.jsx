@@ -51,7 +51,7 @@ const NewDm = () => {
   }
 
 
-  // helpers
+ 
   const getDisplayName = (contact) =>
     contact.firstName
       ? `${contact.firstName} ${contact.lastName ?? ""}`.trim()
@@ -91,7 +91,6 @@ const NewDm = () => {
         </Tooltip>
       </TooltipProvider>
 
-      {/* Dialog */}
       <Dialog open={openNewContactModal} onOpenChange={(open) => {
         setOpenNewContactModal(open)
         if (!open) setSearchedContacts([])
@@ -110,7 +109,6 @@ const NewDm = () => {
               </DialogDescription>
             </DialogHeader>
 
-            {/* Search Input */}
             <div className="relative">
               <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 text-sm pointer-events-none">🔍</span>
               <Input

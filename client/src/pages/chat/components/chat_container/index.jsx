@@ -1,15 +1,30 @@
-import ChatHeader from "./components/chat-header"
-import MessageBar from "./components/message-bar"
-import MessageContainer from "./components/message-container"
+import { useState } from "react";
+import ChatHeader from "./components/chat-header";
+import MessageContainer from "./components/message-container";
+import MessageBar from "./components/message-bar";
+import ContactInfoPanel from "../contact-info-panel";
+
 
 const ChatContainer = () => {
-  return (
-    <div className="fixed top-0 h-[100vh] w-[100vw] bg-[#1c1d25] flex flex-col md:static md:flex-1" >
-     <ChatHeader/>
-     <MessageContainer/>
-     <MessageBar/>
-    </div>
-  )
-}
+  const [infoOpen, setInfoOpen] = useState(false);
 
-export default ChatContainer
+  return (
+    <div className="fixed top-0 h-[100vh] w-[100vw] bg-[#1c1d25] flex md:static md:flex-1">
+
+      <div className="flex flex-col flex-1 min-w-0 h-full">
+        <ChatHeader
+          onInfoClick={() => setInfoOpen((o) => !o)}
+          infoOpen={infoOpen}
+        />
+        <MessageContainer />
+        <MessageBar />
+      </div>
+
+      {infoOpen && (
+        <ContactInfoPanel onClose={() => setInfoOpen(false)} />
+      )}
+    </div>
+  );
+};
+
+export default ChatContainer;
