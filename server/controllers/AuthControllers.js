@@ -35,7 +35,7 @@ export const signup = async (req, res) => {
       maxAge: cookieMaxAge,
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax",
+      sameSite: "None",
     });
 
     return res.status(201).json({
@@ -79,7 +79,7 @@ export const login = async (req, res) => {
       maxAge: cookieMaxAge,
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", // works locally & in prod
-      sameSite: "Lax",
+      sameSite: "None",
     });
 
     return res.status(200).json({
