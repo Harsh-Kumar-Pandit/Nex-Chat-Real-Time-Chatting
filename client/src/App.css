@@ -426,3 +426,18 @@ body {
 .contacts-scroll::-webkit-scrollbar-thumb:hover {
   background: rgba(139, 92, 246, 0.6);
 }
+
+.messages-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.messages-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.messages-scroll::-webkit-scrollbar-thumb {
+  background: rgba(132, 23, 255, 0.25);
+  border-radius: 99px;
+  transition: background 0.2s;
+}
+.messages-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(132, 23, 255, 0.55);
+}
