@@ -1,9 +1,10 @@
 # 💬 Nex-Chat — Real-Time Messaging App
 
 A full-stack real-time chat application built with React, Node.js, Socket.io, and MongoDB. Supports direct messaging, group channels, file sharing, and live updates — all secured with JWT authentication.
+
+---
  Live Link: https://nex-chat-real-time-chatting.vercel.app/chat
 ---
-
 ## ✨ Features
 
 - **Real-time messaging** — Instant send/receive via WebSockets (Socket.io)
