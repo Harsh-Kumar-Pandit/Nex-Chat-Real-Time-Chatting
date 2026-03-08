@@ -26,9 +26,7 @@ app.use(cors({
     credentials: true,
 }))
 
-// ✅ Absolute path so static files always resolve correctly
 app.use("/uploads", express.static(path.join(__dirname, "uploads")))
-
 app.use(cookieParser())
 app.use(express.json({ limit: "10mb" }))
 app.use(express.urlencoded({ limit: "10mb", extended: true }))
@@ -42,7 +40,8 @@ const server = app.listen(port, () => {
     console.log(`Server is running at http://localhost:${port}`)
 })
 
-setupSocket(server)
+// ✅ Pass app so socket.js can attach io and userSocketMap to it
+setupSocket(server, app)
 
 mongoose.connect(databseURL).then(() => {
     console.log('Connected to MongoDB')
