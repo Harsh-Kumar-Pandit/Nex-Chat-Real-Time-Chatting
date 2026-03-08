@@ -104,7 +104,7 @@ const MessageBar = () => {
   }, []);
 
   return (
-    <div className="h-[10vh] bg-[#1b1c24] border-t border-[#2f303b] flex items-center px-4 md:px-8">
+<div className="message-bar-safe h-[10vh] bg-[#1b1c24] border-t border-[#2f303b] flex items-center px-4 md:px-8">
       <div className="flex items-center w-full bg-[#2a2b33] rounded-full px-4 py-2 gap-3 relative">
 
         {/* ✅ Upload overlay */}
