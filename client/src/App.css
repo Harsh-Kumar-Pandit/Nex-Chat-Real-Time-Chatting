@@ -441,3 +441,10 @@ body {
 .messages-scroll::-webkit-scrollbar-thumb:hover {
   background: rgba(132, 23, 255, 0.55);
 }
+
+/* Mobile safe area for bottom navigation bar */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .message-bar-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
