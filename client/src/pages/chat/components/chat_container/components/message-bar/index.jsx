@@ -107,7 +107,7 @@ const MessageBar = () => {
 <div className="message-bar-safe h-[10vh] bg-[#1b1c24] border-t border-[#2f303b] flex items-center px-4 md:px-8">
       <div className="flex items-center w-full bg-[#2a2b33] rounded-full px-4 py-2 gap-3 relative">
 
-        {/* ✅ Upload overlay */}
+
         {uploading && (
           <div className="absolute inset-0 rounded-full bg-[#2a2b33] flex items-center gap-3 px-5 z-10">
             <div className="w-4 h-4 rounded-full border-2 border-violet-500/30 border-t-violet-500 animate-spin shrink-0" />
@@ -162,7 +162,6 @@ const MessageBar = () => {
         </div>
       </div>
 
-      {/* ✅ Send button shows spinner while uploading */}
       <button
         className="ml-3 bg-gradient-to-r from-purple-500 to-purple-700 p-3 rounded-xl hover:scale-105 transition disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
         onClick={handelSendMessage}
