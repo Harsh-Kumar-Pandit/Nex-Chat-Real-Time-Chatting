@@ -36,7 +36,8 @@ const ContactsContainer = () => {
   }, []);
 
   return (
-<div className="relative flex flex-col w-full md:w-[35vw] lg:w-[30vw] xl:w-[20vw] min-w-[260px] h-full bg-[#13141c] border-r border-white/[0.06]">
+    <div className="flex flex-col w-screen md:w-[35vw] lg:w-[30vw] xl:w-[20vw] md:min-w-[260px] h-[100dvh] bg-[#13141c] border-r border-white/[0.06]">
+
       <div className="px-5 pt-5 pb-4 shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
@@ -68,11 +69,11 @@ const ContactsContainer = () => {
         </div>
       </div>
 
-      <div className="mx-3 mt-4 h-px bg-white/[0.05]" />
+      <div className="mx-3 mt-4 h-px bg-white/[0.05] shrink-0" />
 
       {activeTab === "dm" && (
         <div className="flex flex-col flex-1 min-h-0 py-3">
-          <div className="flex items-center justify-between px-3 mb-2">
+          <div className="flex items-center justify-between px-3 mb-2 shrink-0">
             <Title text="Direct Messages" />
             <NewDm />
           </div>
@@ -84,7 +85,7 @@ const ContactsContainer = () => {
 
       {activeTab === "group" && (
         <div className="flex flex-col flex-1 min-h-0 py-3">
-          <div className="flex items-center justify-between px-3 mb-2">
+          <div className="flex items-center justify-between px-3 mb-2 shrink-0">
             <Title text="Groups" />
             <CreateChannel />
           </div>
@@ -98,6 +99,7 @@ const ContactsContainer = () => {
         <div className="mx-3 h-px bg-white/[0.05]" />
         <ProfileInfo />
       </div>
+
     </div>
   );
 };
