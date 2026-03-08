@@ -3,6 +3,8 @@ import dotenv from 'dotenv'
 import cookieParser from 'cookie-parser'
 import mongoose from 'mongoose'
 import cors from 'cors'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import authRoutes from './routes/AuthRoutes.js'
 import contactRoutes from './routes/ContactsRoutes.js'
 import setupSocket from './socket.js'
@@ -11,9 +13,12 @@ import channelRoutes from './routes/ChannelRoutes.js'
 
 dotenv.config()
 
-const app = express();
-const port = process.env.PORT || 7000;
-const databseURL = process.env.DATABASE_URL;
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+const app = express()
+const port = process.env.PORT || 7000
+const databseURL = process.env.DATABASE_URL
 
 app.use(cors({
     origin: process.env.ORIGIN,
@@ -21,26 +26,25 @@ app.use(cors({
     credentials: true,
 }))
 
-app.use("/uploads", express.static("uploads"))
+app.use("/uploads", express.static(path.join(__dirname, "uploads")))
 
-app.use(cookieParser());
+app.use(cookieParser())
+app.use(express.json({ limit: "10mb" }))
+app.use(express.urlencoded({ limit: "10mb", extended: true }))
 
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ limit: "10mb", extended: true }));
 app.use('/api/auth', authRoutes)
 app.use('/api/contacts', contactRoutes)
 app.use('/api/messages', messagesRoutes)
 app.use('/api/channel', channelRoutes)
 
-const server = app.listen(port, ()=>{
-    console.log(`Server is running at http://localhost:${port}`);
-    
+const server = app.listen(port, () => {
+    console.log(`Server is running at http://localhost:${port}`)
 })
 
 setupSocket(server)
 
 mongoose.connect(databseURL).then(() => {
-    console.log('Connected to MongoDB');
+    console.log('Connected to MongoDB')
 }).catch((error) => {
-    console.error('Error connecting to MongoDB:', error.message);
+    console.error('Error connecting to MongoDB:', error.message)
 })
