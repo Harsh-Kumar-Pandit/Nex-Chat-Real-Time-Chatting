@@ -31,53 +31,85 @@ export const SocketProvider = ({ children }) => {
         setDirectMessagesContacts,
       } = useAppStore.getState();
 
+      const myId = userInfo.id?.toString();
+      const senderId = message.sender?._id?.toString() ?? message.sender?.toString();
+      const recipientId = message.recipient?._id?.toString() ?? message.recipient?.toString();
+
       if (
         selectedChatType === "contact" &&
         selectedChatData &&
-        (selectedChatData._id === message.sender._id ||
-          selectedChatData._id === message.recipient._id)
+        (selectedChatData._id === senderId || selectedChatData._id === recipientId)
       ) {
         addMessage(message);
       }
-      const otherUser =
-        message.sender._id === userInfo.id ? message.recipient : message.sender;
 
+      const iAmSender = senderId === myId;
+      const otherUser = iAmSender ? message.recipient : message.sender;
       if (!otherUser) return;
 
-      const exists = directMessagesContacts.find((c) => c._id === otherUser._id);
-
+      const otherUserId = otherUser._id?.toString() ?? otherUser.toString();
       const updatedContact = {
         ...otherUser,
+        _id: otherUserId,
         lastMessage: {
           content: message.content,
           messageType: message.messageType,
         },
       };
 
+      const exists = directMessagesContacts.find(
+        (c) => c._id?.toString() === otherUserId
+      );
+
       if (exists) {
-        // Move to top with updated last message
-        const updated = directMessagesContacts.filter(
-          (c) => c._id !== otherUser._id
+        const filtered = directMessagesContacts.filter(
+          (c) => c._id?.toString() !== otherUserId
         );
-        setDirectMessagesContacts([updatedContact, ...updated]);
+        setDirectMessagesContacts([updatedContact, ...filtered]);
       } else {
         setDirectMessagesContacts([updatedContact, ...directMessagesContacts]);
       }
     };
 
     const handleReceiveChannelMessage = (message) => {
-      const { selectedChatData, selectedChatType, addMessage } =
-        useAppStore.getState();
+      const {
+        selectedChatData,
+        selectedChatType,
+        addMessage,
+        channels,
+        setChannels,
+      } = useAppStore.getState();
+
       if (
         selectedChatType === "channel" &&
         selectedChatData &&
-        selectedChatData._id === message.channelId.toString()
+        selectedChatData._id === message.channelId?.toString()
       ) {
         addMessage(message);
       }
+
+      const channelId = message.channelId?.toString();
+      if (!channelId || !channels) return;
+
+      const existingChannel = channels.find(
+        (c) => c._id?.toString() === channelId
+      );
+
+      if (existingChannel) {
+        const updatedChannel = {
+          ...existingChannel,
+          lastMessage: {
+            content: message.content,
+            messageType: message.messageType,
+          },
+        };
+        const filtered = channels.filter(
+          (c) => c._id?.toString() !== channelId
+        );
+        setChannels([updatedChannel, ...filtered]);
+      }
     };
 
-    // ✅ New channel created — add to sidebar instantly
     const handleNewChannel = (channel) => {
       const { addChannel } = useAppStore.getState();
       if (addChannel) addChannel(channel);
