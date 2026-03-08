@@ -23,8 +23,14 @@ export const SocketProvider = ({ children }) => {
     });
 
     const handleReceiveMessage = (message) => {
-      const { selectedChatData, selectedChatType, addMessage } =
-        useAppStore.getState();
+      const {
+        selectedChatData,
+        selectedChatType,
+        addMessage,
+        directMessagesContacts,
+        setDirectMessagesContacts,
+      } = useAppStore.getState();
+
       if (
         selectedChatType === "contact" &&
         selectedChatData &&
@@ -32,6 +38,30 @@ export const SocketProvider = ({ children }) => {
           selectedChatData._id === message.recipient._id)
       ) {
         addMessage(message);
+      }
+      const otherUser =
+        message.sender._id === userInfo.id ? message.recipient : message.sender;
+
+      if (!otherUser) return;
+
+      const exists = directMessagesContacts.find((c) => c._id === otherUser._id);
+
+      const updatedContact = {
+        ...otherUser,
+        lastMessage: {
+          content: message.content,
+          messageType: message.messageType,
+        },
+      };
+
+      if (exists) {
+        // Move to top with updated last message
+        const updated = directMessagesContacts.filter(
+          (c) => c._id !== otherUser._id
+        );
+        setDirectMessagesContacts([updatedContact, ...updated]);
+      } else {
+        setDirectMessagesContacts([updatedContact, ...directMessagesContacts]);
       }
     };
 
@@ -47,7 +77,7 @@ export const SocketProvider = ({ children }) => {
       }
     };
 
-    // ✅ When someone adds you to a new channel, add it to your sidebar instantly
+    // ✅ New channel created — add to sidebar instantly
     const handleNewChannel = (channel) => {
       const { addChannel } = useAppStore.getState();
       if (addChannel) addChannel(channel);
