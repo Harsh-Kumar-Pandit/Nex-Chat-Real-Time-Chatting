@@ -442,9 +442,8 @@ body {
   background: rgba(132, 23, 255, 0.55);
 }
 
-/* Mobile safe area for bottom navigation bar */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .message-bar-safe {
-    padding-bottom: env(safe-area-inset-bottom);
+    padding-bottom: max(env(safe-area-inset-bottom), 12px);
   }
 }
