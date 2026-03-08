@@ -26,6 +26,7 @@ app.use(cors({
     credentials: true,
 }))
 
+// ✅ Absolute path so static files always resolve correctly
 app.use("/uploads", express.static(path.join(__dirname, "uploads")))
 
 app.use(cookieParser())
