@@ -4,9 +4,8 @@ import User from "../models/UserModel.js";
 import fs from "fs/promises";
 import path from "path";
 
-
-const jwtMaxAge = 3 * 24 * 60 * 60;   // seconds
-const cookieMaxAge = jwtMaxAge * 1000; // ms
+const jwtMaxAge = 3 * 24 * 60 * 60;
+const cookieMaxAge = jwtMaxAge * 1000;
 
 const createToken = (email, userId) => {
   return jwt.sign({ email, userId }, process.env.JWT_SECRET, {
@@ -28,7 +27,6 @@ export const signup = async (req, res) => {
     }
 
     const user = await User.create({ email, password });
-
     const token = createToken(email, user.id);
 
     res.cookie("jwt", token, {
@@ -45,7 +43,6 @@ export const signup = async (req, res) => {
         profileSetup: user.profileSetup,
       },
     });
-
   } catch (error) {
     console.error("SIGNUP ERROR:", error);
     return res.status(500).send("Internal Server Error");
@@ -65,20 +62,17 @@ export const login = async (req, res) => {
       return res.status(404).send("User not found.");
     }
 
-    // compare password
     const isMatch = await compare(password, user.password);
     if (!isMatch) {
       return res.status(400).send("Invalid credentials.");
     }
 
-    // create token
     const token = createToken(email, user.id);
 
-    // set cookie
     res.cookie("jwt", token, {
       maxAge: cookieMaxAge,
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // works locally & in prod
+      secure: process.env.NODE_ENV === "production",
       sameSite: "None",
     });
 
@@ -93,7 +87,6 @@ export const login = async (req, res) => {
         color: user.color,
       },
     });
-
   } catch (error) {
     console.error("LOGIN ERROR:", error);
     return res.status(500).send("Internal Server Error");
@@ -102,71 +95,57 @@ export const login = async (req, res) => {
 
 export const getUserInfo = async (req, res) => {
   try {
-    const userId = req.userId; 
-
+    const userId = req.userId;
     const user = await User.findById(userId).select("-password");
-    console.log(userId);
-    
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-     return res.status(200).json({
-
-        id: user.id,
-        email: user.email,
-        profileSetup: user.profileSetup,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        image: user.image,
-        color: user.color,
+    return res.status(200).json({
+      id: user.id,
+      email: user.email,
+      profileSetup: user.profileSetup,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      image: user.image,
+      color: user.color,
     });
-
-
   } catch (error) {
     console.log("USER INFO ERROR:", error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
-
 export const updateProfile = async (req, res) => {
   try {
-    const userId = req.userId; 
-
+    const userId = req.userId;
     const { firstName, lastName, color } = req.body;
 
-    if ( !firstName || !lastName || color === undefined) {
-      return res.status(400).send("Firstname lastname and color is required")
+    if (!firstName || !lastName || color === undefined) {
+      return res.status(400).send("Firstname lastname and color is required");
     }
 
     const user = await User.findByIdAndUpdate(
       userId,
-      {
-        firstName, lastName, color, profileSetup: true,
-      },
-      {new: true, runValidators: true}
+      { firstName, lastName, color, profileSetup: true },
+      { new: true, runValidators: true }
     );
-     return res.status(200).json({
 
-        id: user.id,
-        email: user.email,
-        profileSetup: user.profileSetup,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        image: user.image,
-        color: user.color,
+    return res.status(200).json({
+      id: user.id,
+      email: user.email,
+      profileSetup: user.profileSetup,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      image: user.image,
+      color: user.color,
     });
-
-
   } catch (error) {
-    console.log("USER INFO ERROR:", error);
+    console.log("UPDATE PROFILE ERROR:", error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
-
-
 
 export const addProfileImage = async (req, res) => {
   try {
@@ -174,10 +153,15 @@ export const addProfileImage = async (req, res) => {
       return res.status(400).send("File is required.");
     }
 
-    const date = Date.now();
+    // Ensure uploads/profiles directory exists
+    const uploadDir = path.join(process.cwd(), "uploads", "profiles");
+    await fs.mkdir(uploadDir, { recursive: true });
+
     const safeName = req.file.originalname.replace(/\s+/g, "-");
-const fileName = `uploads/profiles/${Date.now()}-${safeName}`;
-    await fs.rename(req.file.path, fileName);
+    const fileName = `uploads/profiles/${Date.now()}-${safeName}`;
+    const destPath = path.join(process.cwd(), fileName);
+
+    await fs.rename(req.file.path, destPath);
 
     const updatedUser = await User.findByIdAndUpdate(
       req.userId,
@@ -188,12 +172,12 @@ const fileName = `uploads/profiles/${Date.now()}-${safeName}`;
     return res.status(200).json({
       image: updatedUser.image,
     });
-
   } catch (error) {
     console.log("IMAGE UPLOAD ERROR:", error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
 export const removeProfileImage = async (req, res) => {
   try {
     const user = await User.findById(req.userId);
@@ -201,33 +185,35 @@ export const removeProfileImage = async (req, res) => {
     if (!user) {
       return res.status(400).send("User not found");
     }
-    
-if (user.image) {
-  const imagePath = path.join(process.cwd(), user.image);
 
-  try {
-    await fs.unlink(imagePath);
-  } catch (err) {
-    // ignore if file missing
-  }
-}
+    if (user.image) {
+      const imagePath = path.join(process.cwd(), user.image);
+      console.log("Deleting image at:", imagePath);
+      try {
+        await fs.access(imagePath);
+        await fs.unlink(imagePath);
+      } catch (err) {
+        console.log("File not found or already deleted:", err.message);
+        // continue anyway — still clear from DB
+      }
+    }
+
     user.image = null;
     await user.save();
 
     return res.status(200).json({ message: "Profile image removed" });
-
   } catch (error) {
     console.log("REMOVE IMAGE ERROR:", error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
 export const logOut = async (req, res) => {
   try {
-    res.cookie("jwt", "", {maxAge: 1, secure: true, sameSite: "None"})
+    res.cookie("jwt", "", { maxAge: 1, secure: true, sameSite: "None" });
     return res.status(200).json({ message: "LogOut" });
-
   } catch (error) {
-    console.log("REMOVE IMAGE ERROR:", error);
+    console.log("LOGOUT ERROR:", error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
