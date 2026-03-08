@@ -8,6 +8,53 @@ import { MdZoomIn, MdZoomOut } from "react-icons/md";
 import { Avatar, AvatarImage } from "@radix-ui/react-avatar";
 import { getColor } from "@/lib/utils";
 
+// ✅ Image with auto-retry — retries up to 4 times with backoff
+// Fixes blank image on send (file not yet flushed to disk when <img> first loads)
+const RetryImage = ({ src, alt, className, onClick }) => {
+  const [currentSrc, setCurrentSrc] = useState(src);
+  const [failed, setFailed] = useState(false);
+  const retryCount = useRef(0);
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    setCurrentSrc(src);
+    setFailed(false);
+    retryCount.current = 0;
+    return () => clearTimeout(timerRef.current);
+  }, [src]);
+
+  const handleError = () => {
+    if (retryCount.current >= 4) {
+      setFailed(true);
+      return;
+    }
+    const delay = 500 * Math.pow(2, retryCount.current); // 500ms, 1s, 2s, 4s
+    retryCount.current += 1;
+    timerRef.current = setTimeout(() => {
+      // Bust cache by appending timestamp so browser re-fetches
+      setCurrentSrc(`${src}?t=${Date.now()}`);
+    }, delay);
+  };
+
+  if (failed) {
+    return (
+      <div className="max-h-[280px] max-w-[320px] h-32 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white/30 text-xs">
+        Image unavailable
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={currentSrc}
+      alt={alt}
+      onClick={onClick}
+      onError={handleError}
+      className={className}
+    />
+  );
+};
+
 const MessageContainer = () => {
   const scrollRef = useRef();
   const [lightbox, setLightbox] = useState(null);
@@ -75,7 +122,6 @@ const MessageContainer = () => {
     } catch (err) { console.error("Download failed", err); }
   };
 
-  // ── derived info ──
   const isChannel = selectedChatType === "channel";
   const messageCount = selectedChatMessages?.length ?? 0;
   const memberCount = isChannel ? (selectedChatData?.members?.length ?? 0) : null;
@@ -96,10 +142,8 @@ const MessageContainer = () => {
     ? selectedChatData?.firstName?.charAt(0) ?? selectedChatData?.email?.charAt(0)
     : null;
 
- 
   const renderIntroBanner = () => (
     <div className="flex flex-col items-center gap-3 py-8 px-4 text-center">
-
       {isChannel ? (
         <div className="w-16 h-16 rounded-2xl bg-violet-600/20 border border-violet-500/20 flex items-center justify-center text-violet-300 text-2xl font-bold">
           #
@@ -115,13 +159,10 @@ const MessageContainer = () => {
           )}
         </Avatar>
       )}
-
-  
       <div className="flex flex-col gap-1">
         <span className="text-white font-semibold text-base">
           {isChannel ? `# ${selectedChatData?.name}` : dmDisplayName}
         </span>
-
         {isChannel && (
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <span className="text-white/30 text-xs">
@@ -137,14 +178,10 @@ const MessageContainer = () => {
             </span>
           </div>
         )}
-
         {!isChannel && (
-          <span className="text-white/25 text-xs">
-            {selectedChatData?.email}
-          </span>
+          <span className="text-white/25 text-xs">{selectedChatData?.email}</span>
         )}
       </div>
-
       <div className="flex items-center gap-3 w-full max-w-xs mt-2">
         <div className="flex-1 h-px bg-white/[0.05]" />
         <span className="text-white/15 text-[10px] uppercase tracking-wider">
@@ -152,7 +189,6 @@ const MessageContainer = () => {
         </span>
         <div className="flex-1 h-px bg-white/[0.05]" />
       </div>
-
     </div>
   );
 
@@ -165,8 +201,10 @@ const MessageContainer = () => {
         ${isSender ? "bg-[#8417ff]/10 border-[#8417ff]/30" : "bg-[#2a2b33]/60 border-white/10"}`}>
         {checkIfImage(message.fileUrl) ? (
           <div className="flex flex-col gap-2 p-1">
-            <img
-              src={fileUrl} alt="sent"
+            {/* ✅ RetryImage instead of <img> — retries if file not yet on disk */}
+            <RetryImage
+              src={fileUrl}
+              alt="sent"
               onClick={() => openLightbox(fileUrl)}
               className="max-h-[280px] max-w-[320px] object-contain rounded-xl cursor-pointer"
             />
@@ -297,10 +335,7 @@ const MessageContainer = () => {
   return (
     <>
       <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-0.5 messages-scroll">
-
-
         {renderIntroBanner()}
-
         {renderMessages()}
         <div ref={scrollRef} />
       </div>
