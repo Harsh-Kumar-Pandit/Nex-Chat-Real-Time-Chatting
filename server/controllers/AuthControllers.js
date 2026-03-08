@@ -173,14 +173,23 @@ export const addProfileImage = async (req, res) => {
       return res.status(400).send("File is required.");
     }
 
-    const date = Date.now();
     const safeName = req.file.originalname.replace(/\s+/g, "-");
-const fileName = `uploads/profiles/${Date.now()}-${safeName}`;
-    await fs.rename(req.file.path, fileName);
+    const fileName = `${Date.now()}-${safeName}`;
+
+    const uploadPath = path.join(
+      process.cwd(),
+      "uploads",
+      "profiles",
+      fileName
+    );
+
+    await fs.rename(req.file.path, uploadPath);
+
+    const imagePath = `uploads/profiles/${fileName}`;
 
     const updatedUser = await User.findByIdAndUpdate(
       req.userId,
-      { image: fileName },
+      { image: imagePath },
       { new: true, runValidators: true }
     );
 
@@ -200,27 +209,30 @@ export const removeProfileImage = async (req, res) => {
     if (!user) {
       return res.status(400).send("User not found");
     }
-    
-if (user.image) {
-  const imagePath = path.join(process.cwd(), user.image);
 
-  try {
-    await fs.unlink(imagePath);
-  } catch (err) {
-    // ignore if file missing
-  }
-}
+    if (user.image) {
+      const imagePath = path.join(process.cwd(), user.image);
+
+      try {
+        await fs.unlink(imagePath);
+        console.log("Image deleted:", imagePath);
+      } catch (err) {
+        console.log("Image not found on disk:", imagePath);
+      }
+    }
+
     user.image = null;
     await user.save();
 
-    return res.status(200).json({ message: "Profile image removed" });
+    return res.status(200).json({
+      message: "Profile image removed",
+    });
 
   } catch (error) {
     console.log("REMOVE IMAGE ERROR:", error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
-};
-export const logOut = async (req, res) => {
+};export const logOut = async (req, res) => {
   try {
     res.cookie("jwt", "", {maxAge: 1, secure: true, sameSite: "None"})
     return res.status(200).json({ message: "LogOut" });
