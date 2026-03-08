@@ -3,6 +3,10 @@ import { compare } from "bcrypt";
 import User from "../models/UserModel.js";
 import fs from "fs/promises";
 import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const jwtMaxAge = 3 * 24 * 60 * 60;
 const cookieMaxAge = jwtMaxAge * 1000;
@@ -16,15 +20,10 @@ const createToken = (email, userId) => {
 export const signup = async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).send("Email & password required");
-    }
+    if (!email || !password) return res.status(400).send("Email & password required");
 
     const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(409).send("User already exists");
-    }
+    if (existingUser) return res.status(409).send("User already exists");
 
     const user = await User.create({ email, password });
     const token = createToken(email, user.id);
@@ -37,11 +36,7 @@ export const signup = async (req, res) => {
     });
 
     return res.status(201).json({
-      user: {
-        id: user.id,
-        email: user.email,
-        profileSetup: user.profileSetup,
-      },
+      user: { id: user.id, email: user.email, profileSetup: user.profileSetup },
     });
   } catch (error) {
     console.error("SIGNUP ERROR:", error);
@@ -52,23 +47,15 @@ export const signup = async (req, res) => {
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).send("Email and password are required.");
-    }
+    if (!email || !password) return res.status(400).send("Email and password are required.");
 
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).send("User not found.");
-    }
+    if (!user) return res.status(404).send("User not found.");
 
     const isMatch = await compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).send("Invalid credentials.");
-    }
+    if (!isMatch) return res.status(400).send("Invalid credentials.");
 
     const token = createToken(email, user.id);
-
     res.cookie("jwt", token, {
       maxAge: cookieMaxAge,
       httpOnly: true,
@@ -95,12 +82,8 @@ export const login = async (req, res) => {
 
 export const getUserInfo = async (req, res) => {
   try {
-    const userId = req.userId;
-    const user = await User.findById(userId).select("-password");
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    const user = await User.findById(req.userId).select("-password");
+    if (!user) return res.status(404).json({ message: "User not found" });
 
     return res.status(200).json({
       id: user.id,
@@ -119,15 +102,12 @@ export const getUserInfo = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const userId = req.userId;
     const { firstName, lastName, color } = req.body;
-
-    if (!firstName || !lastName || color === undefined) {
-      return res.status(400).send("Firstname lastname and color is required");
-    }
+    if (!firstName || !lastName || color === undefined)
+      return res.status(400).send("firstName, lastName and color are required");
 
     const user = await User.findByIdAndUpdate(
-      userId,
+      req.userId,
       { firstName, lastName, color, profileSetup: true },
       { new: true, runValidators: true }
     );
@@ -149,29 +129,30 @@ export const updateProfile = async (req, res) => {
 
 export const addProfileImage = async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).send("File is required.");
-    }
+    if (!req.file) return res.status(400).send("File is required.");
 
-    // Ensure uploads/profiles directory exists
-    const uploadDir = path.join(process.cwd(), "uploads", "profiles");
+    // Ensure destination folder exists
+    const uploadDir = path.join(__dirname, "..", "uploads", "profiles");
     await fs.mkdir(uploadDir, { recursive: true });
 
     const safeName = req.file.originalname.replace(/\s+/g, "-");
-    const fileName = `uploads/profiles/${Date.now()}-${safeName}`;
-    const destPath = path.join(process.cwd(), fileName);
+    const finalFileName = `${Date.now()}-${safeName}`;
+    const destPath = path.join(uploadDir, finalFileName);
 
-    await fs.rename(req.file.path, destPath);
+    // ✅ copyFile + unlink instead of rename (safe across tmp/device boundaries)
+    await fs.copyFile(req.file.path, destPath);
+    await fs.unlink(req.file.path).catch(() => {});
+
+    // relative path — frontend prepends HOST
+    const relativePath = `uploads/profiles/${finalFileName}`;
 
     const updatedUser = await User.findByIdAndUpdate(
       req.userId,
-      { image: fileName },
+      { image: relativePath },
       { new: true, runValidators: true }
     );
 
-    return res.status(200).json({
-      image: updatedUser.image,
-    });
+    return res.status(200).json({ image: updatedUser.image });
   } catch (error) {
     console.log("IMAGE UPLOAD ERROR:", error);
     return res.status(500).json({ message: "Internal Server Error" });
@@ -181,20 +162,17 @@ export const addProfileImage = async (req, res) => {
 export const removeProfileImage = async (req, res) => {
   try {
     const user = await User.findById(req.userId);
-
-    if (!user) {
-      return res.status(400).send("User not found");
-    }
+    if (!user) return res.status(404).send("User not found");
 
     if (user.image) {
-      const imagePath = path.join(process.cwd(), user.image);
+      // __dirname is controllers/, go up one level to server root
+      const imagePath = path.join(__dirname, "..", user.image);
       console.log("Deleting image at:", imagePath);
       try {
-        await fs.access(imagePath);
         await fs.unlink(imagePath);
       } catch (err) {
-        console.log("File not found or already deleted:", err.message);
-        // continue anyway — still clear from DB
+        console.log("File already deleted or missing:", err.message);
+        // still clear from DB
       }
     }
 
