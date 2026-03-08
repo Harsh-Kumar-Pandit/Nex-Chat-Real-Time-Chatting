@@ -8,8 +8,7 @@ import { MdZoomIn, MdZoomOut } from "react-icons/md";
 import { Avatar, AvatarImage } from "@radix-ui/react-avatar";
 import { getColor } from "@/lib/utils";
 
-// ✅ Image with auto-retry — retries up to 4 times with backoff
-// Fixes blank image on send (file not yet flushed to disk when <img> first loads)
+
 const RetryImage = ({ src, alt, className, onClick }) => {
   const [currentSrc, setCurrentSrc] = useState(src);
   const [failed, setFailed] = useState(false);
@@ -24,14 +23,10 @@ const RetryImage = ({ src, alt, className, onClick }) => {
   }, [src]);
 
   const handleError = () => {
-    if (retryCount.current >= 4) {
-      setFailed(true);
-      return;
-    }
-    const delay = 500 * Math.pow(2, retryCount.current); // 500ms, 1s, 2s, 4s
+    if (retryCount.current >= 4) { setFailed(true); return; }
+    const delay = 500 * Math.pow(2, retryCount.current);
     retryCount.current += 1;
     timerRef.current = setTimeout(() => {
-      // Bust cache by appending timestamp so browser re-fetches
       setCurrentSrc(`${src}?t=${Date.now()}`);
     }, delay);
   };
@@ -45,13 +40,159 @@ const RetryImage = ({ src, alt, className, onClick }) => {
   }
 
   return (
-    <img
-      src={currentSrc}
-      alt={alt}
-      onClick={onClick}
-      onError={handleError}
-      className={className}
-    />
+    <img src={currentSrc} alt={alt} onClick={onClick} onError={handleError} className={className} />
+  );
+};
+
+const DownloadButton = ({ url, filename, isSender }) => {
+  const [progress, setProgress] = useState(null); 
+
+  const handleDownload = async () => {
+    if (progress !== null) return;
+    setProgress(0);
+
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", url, true);
+      xhr.responseType = "blob";
+
+      xhr.onprogress = (e) => {
+        if (e.lengthComputable) {
+          setProgress(Math.round((e.loaded / e.total) * 100));
+        } else {
+          // If no content-length, just animate
+          setProgress((p) => Math.min((p ?? 0) + 10, 90));
+        }
+      };
+
+      xhr.onload = () => {
+        setProgress(100);
+        const blob = xhr.response;
+        const blobUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = filename || "download";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(blobUrl);
+        setTimeout(() => setProgress(null), 1000);
+      };
+
+      xhr.onerror = () => setProgress(null);
+      xhr.send();
+    } catch {
+      setProgress(null);
+    }
+  };
+
+  const isDownloading = progress !== null && progress < 100;
+  const isDone = progress === 100;
+
+  return (
+    <button
+      onClick={handleDownload}
+      disabled={progress !== null}
+      className={`relative flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg w-fit overflow-hidden transition-all
+        ${isSender
+          ? "bg-[#8417ff]/30 text-purple-200 hover:bg-[#8417ff]/50"
+          : "bg-white/[0.07] text-white/60 hover:bg-white/[0.15]"}
+        disabled:cursor-default`}
+    >
+      {/* Progress fill behind text */}
+      {progress !== null && (
+        <div
+          className={`absolute inset-0 transition-all duration-300 rounded-lg
+            ${isSender ? "bg-violet-500/40" : "bg-white/10"}`}
+          style={{ width: `${progress}%` }}
+        />
+      )}
+
+      <span className="relative z-10 flex items-center gap-1.5">
+        {isDone ? (
+          <>✓ Done</>
+        ) : isDownloading ? (
+          <>{progress}%</>
+        ) : (
+          <><IoDownloadOutline className="text-sm" /> Download</>
+        )}
+      </span>
+    </button>
+  );
+};
+
+const FileDownloadButton = ({ url, filename, isSender }) => {
+  const [progress, setProgress] = useState(null);
+
+  const handleDownload = () => {
+    if (progress !== null) return;
+    setProgress(0);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", url, true);
+    xhr.responseType = "blob";
+
+    xhr.onprogress = (e) => {
+      if (e.lengthComputable) {
+        setProgress(Math.round((e.loaded / e.total) * 100));
+      } else {
+        setProgress((p) => Math.min((p ?? 0) + 10, 90));
+      }
+    };
+
+    xhr.onload = () => {
+      setProgress(100);
+      const blob = xhr.response;
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = filename || "download";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(blobUrl);
+      setTimeout(() => setProgress(null), 1200);
+    };
+
+    xhr.onerror = () => setProgress(null);
+    xhr.send();
+  };
+
+  const isDownloading = progress !== null && progress < 100;
+  const isDone = progress === 100;
+  const radius = 10;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDash = circumference - ((progress ?? 0) / 100) * circumference;
+
+  return (
+    <button
+      onClick={handleDownload}
+      disabled={progress !== null}
+      className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors shrink-0 relative
+        ${isSender
+          ? "bg-[#8417ff]/30 hover:bg-[#8417ff]/50 text-purple-300"
+          : "bg-white/[0.07] hover:bg-white/[0.15] text-white/50"}
+        disabled:cursor-default`}
+    >
+      {isDownloading ? (
+        // Circular progress ring
+        <svg width="24" height="24" viewBox="0 0 24 24" className="-rotate-90">
+          <circle cx="12" cy="12" r={radius} fill="none"
+            stroke="currentColor" strokeOpacity="0.2" strokeWidth="2.5" />
+          <circle cx="12" cy="12" r={radius} fill="none"
+            stroke="currentColor" strokeWidth="2.5"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDash}
+            strokeLinecap="round"
+            style={{ transition: "stroke-dashoffset 0.3s ease" }}
+          />
+        </svg>
+      ) : isDone ? (
+        <span className="text-xs">✓</span>
+      ) : (
+        <IoDownloadOutline className="text-base" />
+      )}
+    </button>
   );
 };
 
@@ -110,18 +251,6 @@ const MessageContainer = () => {
   const openLightbox = (url) => { setLightbox(url); setZoom(1); document.body.style.overflow = "hidden"; };
   const closeLightbox = () => { setLightbox(null); setZoom(1); document.body.style.overflow = ""; };
 
-  const downloadFile = async (url, filename) => {
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = blobUrl; a.download = filename || "download";
-      document.body.appendChild(a); a.click(); a.remove();
-      window.URL.revokeObjectURL(blobUrl);
-    } catch (err) { console.error("Download failed", err); }
-  };
-
   const isChannel = selectedChatType === "channel";
   const messageCount = selectedChatMessages?.length ?? 0;
   const memberCount = isChannel ? (selectedChatData?.members?.length ?? 0) : null;
@@ -145,9 +274,7 @@ const MessageContainer = () => {
   const renderIntroBanner = () => (
     <div className="flex flex-col items-center gap-3 py-8 px-4 text-center">
       {isChannel ? (
-        <div className="w-16 h-16 rounded-2xl bg-violet-600/20 border border-violet-500/20 flex items-center justify-center text-violet-300 text-2xl font-bold">
-          #
-        </div>
+        <div className="w-16 h-16 rounded-2xl bg-violet-600/20 border border-violet-500/20 flex items-center justify-center text-violet-300 text-2xl font-bold">#</div>
       ) : (
         <Avatar className="w-16 h-16 rounded-2xl overflow-hidden block">
           {selectedChatData?.image ? (
@@ -165,22 +292,14 @@ const MessageContainer = () => {
         </span>
         {isChannel && (
           <div className="flex items-center justify-center gap-3 flex-wrap">
-            <span className="text-white/30 text-xs">
-              👑 Created by <span className="text-violet-400/70">{adminName}</span>
-            </span>
+            <span className="text-white/30 text-xs">👑 Created by <span className="text-violet-400/70">{adminName}</span></span>
             <span className="text-white/10 text-xs">·</span>
-            <span className="text-white/30 text-xs">
-              👥 {memberCount} member{memberCount !== 1 ? "s" : ""}
-            </span>
+            <span className="text-white/30 text-xs">👥 {memberCount} member{memberCount !== 1 ? "s" : ""}</span>
             <span className="text-white/10 text-xs">·</span>
-            <span className="text-white/30 text-xs">
-              💬 {messageCount} message{messageCount !== 1 ? "s" : ""}
-            </span>
+            <span className="text-white/30 text-xs">💬 {messageCount} message{messageCount !== 1 ? "s" : ""}</span>
           </div>
         )}
-        {!isChannel && (
-          <span className="text-white/25 text-xs">{selectedChatData?.email}</span>
-        )}
+        {!isChannel && <span className="text-white/25 text-xs">{selectedChatData?.email}</span>}
       </div>
       <div className="flex items-center gap-3 w-full max-w-xs mt-2">
         <div className="flex-1 h-px bg-white/[0.05]" />
@@ -201,20 +320,14 @@ const MessageContainer = () => {
         ${isSender ? "bg-[#8417ff]/10 border-[#8417ff]/30" : "bg-[#2a2b33]/60 border-white/10"}`}>
         {checkIfImage(message.fileUrl) ? (
           <div className="flex flex-col gap-2 p-1">
-            {/* ✅ RetryImage instead of <img> — retries if file not yet on disk */}
             <RetryImage
-              src={fileUrl}
-              alt="sent"
+              src={fileUrl} alt="sent"
               onClick={() => openLightbox(fileUrl)}
               className="max-h-[280px] max-w-[320px] object-contain rounded-xl cursor-pointer"
             />
-            <button
-              onClick={() => downloadFile(fileUrl, fileName)}
-              className={`flex items-center gap-1 text-xs px-3 py-1 rounded-md w-fit mb-1 ml-1
-                ${isSender ? "bg-[#8417ff]/30 text-purple-200 hover:bg-[#8417ff]/50" : "bg-white/[0.07] text-white/60 hover:bg-white/[0.15]"}`}
-            >
-              <IoDownloadOutline /> Download
-            </button>
+            <div className="mb-1 ml-1">
+              <DownloadButton url={fileUrl} filename={fileName} isSender={isSender} />
+            </div>
           </div>
         ) : (
           <div className="flex items-center gap-3 px-4 py-3">
@@ -224,13 +337,8 @@ const MessageContainer = () => {
               <span className="text-white/80 text-sm font-medium truncate max-w-[160px]">{fileName}</span>
               <span className={`text-xs mt-0.5 ${isSender ? "text-purple-400/60" : "text-white/30"}`}>File</span>
             </div>
-            <button
-              onClick={() => downloadFile(fileUrl, fileName)}
-              className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors shrink-0
-                ${isSender ? "bg-[#8417ff]/30 hover:bg-[#8417ff]/50 text-purple-300" : "bg-white/[0.07] hover:bg-white/[0.15] text-white/50"}`}
-            >
-              <IoDownloadOutline className="text-base" />
-            </button>
+            {/* ✅ Circular progress ring for file downloads */}
+            <FileDownloadButton url={fileUrl} filename={fileName} isSender={isSender} />
           </div>
         )}
       </div>
@@ -288,9 +396,7 @@ const MessageContainer = () => {
           </div>
         )}
         <div className="flex flex-col gap-1 max-w-[55%]">
-          {!isSender && (
-            <span className="text-[11px] text-white/30 pl-1">{senderName}</span>
-          )}
+          {!isSender && <span className="text-[11px] text-white/30 pl-1">{senderName}</span>}
           {message.messageType === "text" && (
             <div className={`inline-block px-4 py-2.5 rounded-2xl break-words text-sm leading-relaxed
               ${isSender
@@ -356,7 +462,11 @@ const MessageContainer = () => {
                 className="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white">
                 <MdZoomIn className="text-lg" />
               </button>
-              <button onClick={() => downloadFile(lightbox, lightbox.split("/").pop())}
+              <button onClick={() => {
+                const a = document.createElement("a");
+                a.href = lightbox; a.download = lightbox.split("/").pop();
+                a.click();
+              }}
                 className="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white">
                 <IoDownloadOutline className="text-lg" />
               </button>
