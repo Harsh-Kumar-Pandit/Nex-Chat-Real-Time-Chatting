@@ -4,7 +4,6 @@ import { HOST } from "@/utils/constants";
 import { createContext, useContext, useEffect, useState } from "react";
 
 const SocketContext = createContext(null);
-
 export const useSocket = () => useContext(SocketContext);
 
 export const SocketProvider = ({ children }) => {
@@ -26,7 +25,6 @@ export const SocketProvider = ({ children }) => {
     const handleReceiveMessage = (message) => {
       const { selectedChatData, selectedChatType, addMessage } =
         useAppStore.getState();
-
       if (
         selectedChatType === "contact" &&
         selectedChatData &&
@@ -40,7 +38,6 @@ export const SocketProvider = ({ children }) => {
     const handleReceiveChannelMessage = (message) => {
       const { selectedChatData, selectedChatType, addMessage } =
         useAppStore.getState();
-
       if (
         selectedChatType === "channel" &&
         selectedChatData &&
@@ -50,8 +47,15 @@ export const SocketProvider = ({ children }) => {
       }
     };
 
+    // ✅ When someone adds you to a new channel, add it to your sidebar instantly
+    const handleNewChannel = (channel) => {
+      const { addChannel } = useAppStore.getState();
+      if (addChannel) addChannel(channel);
+    };
+
     newSocket.on("receiveMessage", handleReceiveMessage);
     newSocket.on("receiveChannelMessage", handleReceiveChannelMessage);
+    newSocket.on("newChannel", handleNewChannel);
 
     setSocket(newSocket);
 
