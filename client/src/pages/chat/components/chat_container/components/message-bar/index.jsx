@@ -14,6 +14,7 @@ const MessageBar = () => {
 
   const [message, setMessage] = useState("");
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const { selectedChatType, selectedChatData, userInfo } = useAppStore();
   const socket = useSocket();
@@ -55,6 +56,8 @@ const MessageBar = () => {
       const file = event.target.files[0];
       if (!file) return;
 
+      setUploading(true);
+
       const formData = new FormData();
       formData.append("file", file);
 
@@ -81,10 +84,12 @@ const MessageBar = () => {
           });
         }
       }
-      // reset input
+
       event.target.value = "";
     } catch (error) {
       console.log(error);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -100,13 +105,22 @@ const MessageBar = () => {
 
   return (
     <div className="h-[10vh] bg-[#1b1c24] border-t border-[#2f303b] flex items-center px-4 md:px-8">
-      <div className="flex items-center w-full bg-[#2a2b33] rounded-full px-4 py-2 gap-3">
+      <div className="flex items-center w-full bg-[#2a2b33] rounded-full px-4 py-2 gap-3 relative">
+
+        {/* ✅ Upload overlay */}
+        {uploading && (
+          <div className="absolute inset-0 rounded-full bg-[#2a2b33] flex items-center gap-3 px-5 z-10">
+            <div className="w-4 h-4 rounded-full border-2 border-violet-500/30 border-t-violet-500 animate-spin shrink-0" />
+            <span className="text-white/50 text-sm">Uploading...</span>
+          </div>
+        )}
 
         <input
           type="text"
           value={message}
           placeholder="Enter message"
-          className="flex-1 bg-transparent outline-none text-white placeholder:text-neutral-400"
+          disabled={uploading}
+          className="flex-1 bg-transparent outline-none text-white placeholder:text-neutral-400 disabled:opacity-0"
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
@@ -116,12 +130,25 @@ const MessageBar = () => {
           }}
         />
 
-        <button className="text-neutral-400 hover:text-white transition" onClick={handelAttachmentClick}>
+        <button
+          className="text-neutral-400 hover:text-white transition disabled:opacity-0"
+          onClick={handelAttachmentClick}
+          disabled={uploading}
+        >
           <FiPaperclip size={20} />
-          <input type="file" className="hidden" ref={fileInputRef} onChange={handleAttachmentChange} />
+          <input
+            type="file"
+            className="hidden"
+            ref={fileInputRef}
+            onChange={handleAttachmentChange}
+          />
         </button>
 
-        <button className="text-neutral-400 hover:text-white transition" onClick={() => setEmojiPickerOpen(true)}>
+        <button
+          className="text-neutral-400 hover:text-white transition disabled:opacity-0"
+          onClick={() => setEmojiPickerOpen(true)}
+          disabled={uploading}
+        >
           <HiOutlineEmojiHappy size={22} />
         </button>
 
@@ -135,11 +162,17 @@ const MessageBar = () => {
         </div>
       </div>
 
+      {/* ✅ Send button shows spinner while uploading */}
       <button
-        className="ml-3 bg-gradient-to-r from-purple-500 to-purple-700 p-3 rounded-xl hover:scale-105 transition"
+        className="ml-3 bg-gradient-to-r from-purple-500 to-purple-700 p-3 rounded-xl hover:scale-105 transition disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
         onClick={handelSendMessage}
+        disabled={uploading}
       >
-        <IoSend className="text-white text-xl" />
+        {uploading ? (
+          <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+        ) : (
+          <IoSend className="text-white text-xl" />
+        )}
       </button>
     </div>
   );
