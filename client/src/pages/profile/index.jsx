@@ -200,7 +200,7 @@ const [imageDeleting, setImageDeleting] = useState(false);
       transition-all duration-200
       ${imageUploading || imageDeleting
         ? "opacity-100"                 
-        : "opacity-100 md:opacity-0 md:group-hover:opacity-100"
+        : "opacity-100"
       }
     `}
   >
