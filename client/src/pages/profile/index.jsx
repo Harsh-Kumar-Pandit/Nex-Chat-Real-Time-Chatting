@@ -96,13 +96,13 @@ const [imageDeleting, setImageDeleting] = useState(false);
       toast.error("Upload failed");
       console.error(error);
     } finally {
-      setImageUploading(true);
+      setImageUploading(false);
     }
   };
 
   const handelDeleteImage = async () => {
     if (!image || !confirm("Remove profile image?")) return;
-    setImageUploading(true);
+    setImageDeleting(true);
     try {
       const response = await apiClient.delete(REMOVE_PROFILE_IMAGE_ROUTE, {
         withCredentials: true,
@@ -115,7 +115,7 @@ const [imageDeleting, setImageDeleting] = useState(false);
     } catch (error) {
       toast.error("Failed to remove image");
     } finally {
-      setImageUploading(true);
+      setImageDeleting(false);
     }
   };
 
