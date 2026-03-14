@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { HOST, LOGOUT_ROUTE } from "@/utils/constants";
 import { FiEdit2, FiLogOut } from "react-icons/fi";
 import apiClient from "@/lib/api-client";
+import { useState } from "react";
 
 const ProfileInfo = () => {
   const[loading, setLoading] = useState(false);
