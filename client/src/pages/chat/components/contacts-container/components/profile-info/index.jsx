@@ -7,11 +7,13 @@ import { FiEdit2, FiLogOut } from "react-icons/fi";
 import apiClient from "@/lib/api-client";
 
 const ProfileInfo = () => {
+  const[loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { userInfo, setUserInfo } = useAppStore();
 
   const handleLogout = async (e) => {
     e.stopPropagation();
+    setLoading(true)
     try {
       const response = await apiClient.post(LOGOUT_ROUTE, {}, { withCredentials: true });
       if (response.status === 200) {
@@ -20,6 +22,8 @@ const ProfileInfo = () => {
       }
     } catch (error) {
       console.log(error);
+    } finally{
+      setLoading(false)
     }
   };
 
@@ -65,8 +69,17 @@ const ProfileInfo = () => {
         <button
           onClick={handleLogout}
           className="shrink-0 text-gray-400 hover:text-red-400 p-2 rounded-lg hover:bg-gray-800 transition"
+          disabled={loading}
         >
-          <FiLogOut size={20} />
+          {loading ? (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+    style={{ animation: "spin 1s linear infinite" }}>
+    <circle cx="12" cy="12" r="10" stroke="currentColor"
+      strokeWidth="3" strokeDasharray="40" strokeDashoffset="10"
+      strokeLinecap="round"/>
+  </svg>
+) : <FiLogOut size={20} />}
+
         </button>
 
       </div>
