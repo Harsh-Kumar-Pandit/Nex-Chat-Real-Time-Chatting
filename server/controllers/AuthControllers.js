@@ -10,6 +10,7 @@ const __dirname = path.dirname(__filename);
 
 const jwtMaxAge = 3 * 24 * 60 * 60;
 const cookieMaxAge = jwtMaxAge * 1000;
+const isProduction = process.env.NODE_ENV === "production";
 
 const createToken = (email, userId) => {
   return jwt.sign({ email, userId }, process.env.JWT_SECRET, {
@@ -31,8 +32,8 @@ export const signup = async (req, res) => {
     res.cookie("jwt", token, {
       maxAge: cookieMaxAge,
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "None",
+      secure: isProduction,
+      sameSite: isProduction ? "None" : "Lax",
     });
 
     return res.status(201).json({
@@ -59,8 +60,8 @@ export const login = async (req, res) => {
     res.cookie("jwt", token, {
       maxAge: cookieMaxAge,
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "None",
+      secure: isProduction,
+      sameSite: isProduction ? "None" : "Lax",
     });
 
     return res.status(200).json({
@@ -188,7 +189,7 @@ export const removeProfileImage = async (req, res) => {
 
 export const logOut = async (req, res) => {
   try {
-    res.cookie("jwt", "", { maxAge: 1, secure: true, sameSite: "None" });
+    res.cookie("jwt", "", { maxAge: 1, secure: isProduction, sameSite: isProduction ? "None" : "Lax" });
     return res.status(200).json({ message: "LogOut" });
   } catch (error) {
     console.log("LOGOUT ERROR:", error);

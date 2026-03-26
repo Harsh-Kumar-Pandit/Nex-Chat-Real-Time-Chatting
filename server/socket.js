@@ -86,6 +86,54 @@ const setupSocket = (server, app) => {
     }
     socket.on("sendMessage", sendMessage);
     socket.on("sendChannelMessage", sendChannelMessage);
+
+    // Video call signaling
+    socket.on("call-user", (data) => {
+      const { to, offer, from, callerInfo } = data;
+      const recipientSocketId = userSocketMap.get(to);
+      if (recipientSocketId) {
+        io.to(recipientSocketId).emit("incoming-call", {
+          from,
+          offer,
+          callerInfo,
+        });
+      } else {
+        socket.emit("call-not-available", { to });
+      }
+    });
+
+    socket.on("call-accepted", (data) => {
+      const { to, answer } = data;
+      const callerSocketId = userSocketMap.get(to);
+      if (callerSocketId) {
+        io.to(callerSocketId).emit("call-accepted", { answer });
+      }
+    });
+
+    socket.on("call-rejected", (data) => {
+      const { to } = data;
+      const callerSocketId = userSocketMap.get(to);
+      if (callerSocketId) {
+        io.to(callerSocketId).emit("call-rejected");
+      }
+    });
+
+    socket.on("call-ended", (data) => {
+      const { to } = data;
+      const otherSocketId = userSocketMap.get(to);
+      if (otherSocketId) {
+        io.to(otherSocketId).emit("call-ended");
+      }
+    });
+
+    socket.on("ice-candidate", (data) => {
+      const { to, candidate } = data;
+      const recipientSocketId = userSocketMap.get(to);
+      if (recipientSocketId) {
+        io.to(recipientSocketId).emit("ice-candidate", { candidate });
+      }
+    });
+
     socket.on("disconnect", () => handleDisconnect(socket));
   });
 
