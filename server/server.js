@@ -11,17 +11,35 @@ import setupSocket from './socket.js'
 import messagesRoutes from './routes/MessagesRoutes.js'
 import channelRoutes from './routes/ChannelRoutes.js'
 
-dotenv.config()
-
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+const repoRoot = path.resolve(__dirname, "..")
+
+dotenv.config({ path: path.join(__dirname, ".env") })
+dotenv.config({ path: path.join(repoRoot, ".env"), override: false })
 
 const app = express()
 const port = process.env.PORT || 7000
-const databseURL = process.env.DATABASE_URL
+const databaseURL = process.env.MONGODB_URI || process.env.DATABASE_URL
+const allowedOrigins = (process.env.ORIGIN || "http://localhost:5173,http://localhost:5174")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean)
+const isAllowedOrigin = (requestOrigin) => {
+    if (!requestOrigin) return true
+    if (allowedOrigins.includes(requestOrigin)) return true
+    return /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(requestOrigin)
+}
 
 app.use(cors({
-    origin: process.env.ORIGIN,
+    origin: (requestOrigin, callback) => {
+        if (isAllowedOrigin(requestOrigin)) {
+            callback(null, true)
+            return
+        }
+
+        callback(new Error(`CORS blocked for origin: ${requestOrigin}`))
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
 }))
@@ -43,8 +61,14 @@ const server = app.listen(port, () => {
 // ✅ Pass app so socket.js can attach io and userSocketMap to it
 setupSocket(server, app)
 
-mongoose.connect(databseURL).then(() => {
+if (!databaseURL) {
+    console.error('Missing MongoDB connection string. Set `MONGODB_URI` in `server/.env` or the project root `.env`.')
+    process.exit(1)
+}
+
+mongoose.connect(databaseURL).then(() => {
     console.log('Connected to MongoDB')
 }).catch((error) => {
     console.error('Error connecting to MongoDB:', error.message)
+    process.exit(1)
 })
