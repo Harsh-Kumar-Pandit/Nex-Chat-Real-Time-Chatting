@@ -162,6 +162,17 @@ const VideoCall = () => {
       const pc = peerConnectionRef.current;
       if (pc) {
         await pc.setRemoteDescription(new RTCSessionDescription(answer));
+
+        // Flush buffered ICE candidates
+        for (const bufferedCandidate of iceCandidateBufferRef.current) {
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(bufferedCandidate));
+          } catch (err) {
+            console.error("Error adding buffered ICE candidate:", err);
+          }
+        }
+        iceCandidateBufferRef.current = [];
+
         setVideoCallStatus("connected");
       }
     };

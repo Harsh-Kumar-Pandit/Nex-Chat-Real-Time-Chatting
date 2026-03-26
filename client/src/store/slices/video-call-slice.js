@@ -17,6 +17,7 @@ export const createVideoCallSlice = (set) => ({
   endVideoCall: () =>
     set({
       videoCallStatus: "idle",
+      videoCallType: "video",
       videoCallData: undefined,
       localStream: undefined,
       remoteStream: undefined,
