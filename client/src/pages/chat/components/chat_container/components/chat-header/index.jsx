@@ -3,9 +3,10 @@ import { Avatar, AvatarImage } from "@radix-ui/react-avatar";
 import { getColor } from "@/lib/utils";
 import { HOST } from "@/utils/constants";
 import { RiCloseFill } from "react-icons/ri";
+import { MdVideocam } from "react-icons/md";
 
 const ChatHeader = ({ onInfoClick, infoOpen }) => {
-  const { closeChat, selectedChatData, selectedChatType, selectedChatMessages } = useAppStore();
+  const { closeChat, selectedChatData, selectedChatType, selectedChatMessages, setVideoCallStatus, setVideoCallData, setVideoCallType } = useAppStore();
 
   const isChannel = selectedChatType === "channel";
 
@@ -69,12 +70,28 @@ const ChatHeader = ({ onInfoClick, infoOpen }) => {
         </div>
       </button>
 
-      <button
-        onClick={closeChat}
-        className="w-9 h-9 rounded-xl text-white/30 hover:text-red-400 hover:bg-red-500/[0.08] flex items-center justify-center transition-all duration-200 shrink-0"
-      >
-        <RiCloseFill className="text-xl" />
-      </button>
+      <div className="flex items-center gap-2">
+        {!isChannel && (
+          <button
+            onClick={() => {
+              setVideoCallData(selectedChatData);
+              setVideoCallType("video");
+              setVideoCallStatus("outgoing");
+            }}
+            className="w-9 h-9 rounded-xl text-white/30 hover:text-purple-400 hover:bg-purple-500/[0.08] flex items-center justify-center transition-all duration-200 shrink-0"
+            title="Video Call"
+          >
+            <MdVideocam className="text-xl" />
+          </button>
+        )}
+
+        <button
+          onClick={closeChat}
+          className="w-9 h-9 rounded-xl text-white/30 hover:text-red-400 hover:bg-red-500/[0.08] flex items-center justify-center transition-all duration-200 shrink-0"
+        >
+          <RiCloseFill className="text-xl" />
+        </button>
+      </div>
     </div>
   );
 };

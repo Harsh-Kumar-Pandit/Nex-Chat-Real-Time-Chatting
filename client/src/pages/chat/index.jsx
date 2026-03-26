@@ -5,9 +5,10 @@ import { toast } from "sonner";
 import ContactsContainer from "./components/contacts-container";
 import EmptyChatContainer from "./components/empty-chat-conatiner";
 import ChatContainer from "./components/chat_container";
+import VideoCall from "./components/video-call";
 
 const Chat = () => {
-  const { userInfo, selectedChatType } = useAppStore();
+  const { userInfo, selectedChatType, videoCallStatus } = useAppStore();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,6 +32,8 @@ const Chat = () => {
       ) : (
         <ChatContainer />
       )}
+
+      {videoCallStatus !== "idle" && <VideoCall />}
     </div>
   );
 };

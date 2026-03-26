@@ -115,9 +115,18 @@ export const SocketProvider = ({ children }) => {
       if (addChannel) addChannel(channel);
     };
 
+    const handleIncomingCall = ({ offer, callerInfo }) => {
+      const { setVideoCallStatus, setVideoCallData, setIncomingOffer } =
+        useAppStore.getState();
+      setVideoCallData(callerInfo);
+      setIncomingOffer(offer);
+      setVideoCallStatus("incoming");
+    };
+
     newSocket.on("receiveMessage", handleReceiveMessage);
     newSocket.on("receiveChannelMessage", handleReceiveChannelMessage);
     newSocket.on("newChannel", handleNewChannel);
+    newSocket.on("incoming-call", handleIncomingCall);
 
     setSocket(newSocket);
 
