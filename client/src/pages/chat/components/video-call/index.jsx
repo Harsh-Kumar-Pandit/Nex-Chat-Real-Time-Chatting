@@ -114,7 +114,7 @@ const VideoCall = () => {
     const pc = new RTCPeerConnection(ICE_SERVERS);
     const inboundStream = new MediaStream();
     remoteStreamRef.current = inboundStream;
-    setRemoteStream(inboundStream);
+    setRemoteStream(new MediaStream());
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
@@ -134,6 +134,7 @@ const VideoCall = () => {
       if (firstStream) {
         remoteStreamRef.current = firstStream;
         setRemoteStream(firstStream);
+        setVideoCallStatus("connected");
         return;
       }
 
@@ -150,7 +151,8 @@ const VideoCall = () => {
         currentRemoteStream.addTrack(event.track);
       }
 
-      setRemoteStream(currentRemoteStream);
+      setRemoteStream(new MediaStream(currentRemoteStream.getTracks()));
+      setVideoCallStatus("connected");
     };
 
     pc.onconnectionstatechange = () => {
@@ -352,6 +354,8 @@ const VideoCall = () => {
         answer,
       });
 
+      setVideoCallStatus("connected");
+
     } catch (err) {
       console.error("Failed to accept call:", err);
       cleanupCall();
@@ -402,12 +406,16 @@ const VideoCall = () => {
   const initial =
     videoCallData?.firstName?.charAt(0) ?? videoCallData?.email?.charAt(0);
 
+  const hasRemoteVideo =
+    remoteStream?.getVideoTracks?.().some((track) => track.readyState === "live") ?? false;
+  const showRemoteVideo = videoCallType === "video" && hasRemoteVideo;
+
   return (
     <div className="fixed inset-0 z-50 bg-[#0b0c10] flex flex-col items-center justify-center">
       <audio ref={remoteAudioRef} autoPlay playsInline />
 
       {/* Remote video (full background) */}
-      {videoCallStatus === "connected" && videoCallType === "video" && (
+      {showRemoteVideo && (
         <video
           ref={remoteVideoRef}
           autoPlay
@@ -420,7 +428,7 @@ const VideoCall = () => {
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 pointer-events-none" />
 
       {/* Caller/callee info (shown when not connected or audio-only) */}
-      {(videoCallStatus !== "connected" || videoCallType === "audio") && (
+      {(!showRemoteVideo || videoCallType === "audio") && (
         <div className="relative z-10 flex flex-col items-center gap-4">
           <div className="relative">
             <Avatar className="w-28 h-28 rounded-full overflow-hidden block ring-4 ring-purple-500/30">
@@ -455,7 +463,7 @@ const VideoCall = () => {
       )}
 
       {/* Connected status bar */}
-      {videoCallStatus === "connected" && videoCallType === "video" && (
+      {showRemoteVideo && (
         <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 bg-black/50 backdrop-blur-md rounded-full px-4 py-2 flex items-center gap-3">
           <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
           <span className="text-white/80 text-sm font-medium">
