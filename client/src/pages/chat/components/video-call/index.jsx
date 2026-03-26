@@ -44,6 +44,7 @@ const VideoCall = () => {
   const callTimerRef = useRef(null);
 
   const handleEndCallRef = useRef(null);
+  const iceCandidateBufferRef = useRef([]);
 
   const cleanupCall = useCallback(() => {
     if (callTimerRef.current) {
@@ -58,6 +59,7 @@ const VideoCall = () => {
     if (currentLocalStream) {
       currentLocalStream.getTracks().forEach((track) => track.stop());
     }
+    iceCandidateBufferRef.current = [];
     setCallDuration(0);
     setIsMuted(false);
     setIsCameraOff(false);
@@ -178,12 +180,14 @@ const VideoCall = () => {
 
     const handleIceCandidate = async ({ candidate }) => {
       const pc = peerConnectionRef.current;
-      if (pc && candidate) {
+      if (pc && pc.remoteDescription && candidate) {
         try {
           await pc.addIceCandidate(new RTCIceCandidate(candidate));
         } catch (err) {
           console.error("Error adding ICE candidate:", err);
         }
+      } else if (candidate) {
+        iceCandidateBufferRef.current.push(candidate);
       }
     };
 
@@ -241,6 +245,17 @@ const VideoCall = () => {
       stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
       await pc.setRemoteDescription(new RTCSessionDescription(incomingOffer));
+
+      // Flush buffered ICE candidates
+      for (const bufferedCandidate of iceCandidateBufferRef.current) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(bufferedCandidate));
+        } catch (err) {
+          console.error("Error adding buffered ICE candidate:", err);
+        }
+      }
+      iceCandidateBufferRef.current = [];
+
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
