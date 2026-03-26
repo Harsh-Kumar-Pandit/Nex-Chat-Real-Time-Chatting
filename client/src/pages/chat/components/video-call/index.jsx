@@ -301,21 +301,21 @@ const VideoCall = () => {
       localVideoRef.current.srcObject = localStream;
       localVideoRef.current.play?.().catch(() => {});
     }
-  }, [localStream]);
+  }, [localStream, videoCallStatus, videoCallType]);
 
   useEffect(() => {
     if (remoteVideoRef.current && remoteStream) {
       remoteVideoRef.current.srcObject = remoteStream;
       remoteVideoRef.current.play?.().catch(() => {});
     }
-  }, [remoteStream]);
+  }, [remoteStream, videoCallStatus, videoCallType]);
 
   useEffect(() => {
     if (remoteAudioRef.current && remoteStream) {
       remoteAudioRef.current.srcObject = remoteStream;
       remoteAudioRef.current.play?.().catch(() => {});
     }
-  }, [remoteStream]);
+  }, [remoteStream, videoCallStatus]);
 
   const handleAcceptCall = async () => {
     if (!socket || !videoCallData || !incomingOffer) {
