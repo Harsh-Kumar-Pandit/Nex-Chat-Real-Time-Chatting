@@ -12,12 +12,38 @@ import {
   MdVideocamOff,
 } from "react-icons/md";
 
-const ICE_SERVERS = {
-  iceServers: [
+const buildIceServerConfig = () => {
+  const iceServers = [
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
-  ],
+    { urls: "stun:stun2.l.google.com:19302" },
+    { urls: "stun:stun.relay.metered.ca:80" },
+  ];
+
+  const turnUrls = import.meta.env.VITE_TURN_URLS
+    ?.split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (
+    turnUrls?.length &&
+    import.meta.env.VITE_TURN_USERNAME &&
+    import.meta.env.VITE_TURN_CREDENTIAL
+  ) {
+    iceServers.push({
+      urls: turnUrls,
+      username: import.meta.env.VITE_TURN_USERNAME,
+      credential: import.meta.env.VITE_TURN_CREDENTIAL,
+    });
+  }
+
+  return {
+    iceServers,
+    iceCandidatePoolSize: 10,
+  };
 };
+
+const ICE_SERVERS = buildIceServerConfig();
 
 const VideoCall = () => {
   const socket = useSocket();
@@ -38,6 +64,8 @@ const VideoCall = () => {
   const peerConnectionRef = useRef(null);
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
+  const remoteAudioRef = useRef(null);
+  const remoteStreamRef = useRef(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
@@ -55,6 +83,7 @@ const VideoCall = () => {
       peerConnectionRef.current.close();
       peerConnectionRef.current = null;
     }
+    remoteStreamRef.current = null;
     const { localStream: currentLocalStream } = useAppStore.getState();
     if (currentLocalStream) {
       currentLocalStream.getTracks().forEach((track) => track.stop());
@@ -83,6 +112,9 @@ const VideoCall = () => {
 
   const createPeerConnection = useCallback(() => {
     const pc = new RTCPeerConnection(ICE_SERVERS);
+    const inboundStream = new MediaStream();
+    remoteStreamRef.current = inboundStream;
+    setRemoteStream(inboundStream);
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
@@ -97,7 +129,33 @@ const VideoCall = () => {
     };
 
     pc.ontrack = (event) => {
-      setRemoteStream(event.streams[0]);
+      const [firstStream] = event.streams;
+
+      if (firstStream) {
+        remoteStreamRef.current = firstStream;
+        setRemoteStream(firstStream);
+        return;
+      }
+
+      if (!remoteStreamRef.current) {
+        remoteStreamRef.current = new MediaStream();
+      }
+
+      const currentRemoteStream = remoteStreamRef.current;
+      const alreadyAdded = currentRemoteStream
+        .getTracks()
+        .some((track) => track.id === event.track.id);
+
+      if (!alreadyAdded) {
+        currentRemoteStream.addTrack(event.track);
+      }
+
+      setRemoteStream(currentRemoteStream);
+    };
+
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === "connected") {
+      }
     };
 
     pc.oniceconnectionstatechange = () => {
@@ -108,7 +166,7 @@ const VideoCall = () => {
 
     peerConnectionRef.current = pc;
     return pc;
-  }, [socket, setRemoteStream]);
+  }, [socket, setRemoteStream, setVideoCallStatus]);
 
   // Start outgoing call
   useEffect(() => {
@@ -179,7 +237,6 @@ const VideoCall = () => {
         }
         iceCandidateBufferRef.current = [];
 
-        setVideoCallStatus("connected");
       }
     };
 
@@ -242,12 +299,21 @@ const VideoCall = () => {
   useEffect(() => {
     if (localVideoRef.current && localStream) {
       localVideoRef.current.srcObject = localStream;
+      localVideoRef.current.play?.().catch(() => {});
     }
   }, [localStream]);
 
   useEffect(() => {
     if (remoteVideoRef.current && remoteStream) {
       remoteVideoRef.current.srcObject = remoteStream;
+      remoteVideoRef.current.play?.().catch(() => {});
+    }
+  }, [remoteStream]);
+
+  useEffect(() => {
+    if (remoteAudioRef.current && remoteStream) {
+      remoteAudioRef.current.srcObject = remoteStream;
+      remoteAudioRef.current.play?.().catch(() => {});
     }
   }, [remoteStream]);
 
@@ -286,7 +352,6 @@ const VideoCall = () => {
         answer,
       });
 
-      setVideoCallStatus("connected");
     } catch (err) {
       console.error("Failed to accept call:", err);
       cleanupCall();
@@ -339,6 +404,8 @@ const VideoCall = () => {
 
   return (
     <div className="fixed inset-0 z-50 bg-[#0b0c10] flex flex-col items-center justify-center">
+      <audio ref={remoteAudioRef} autoPlay playsInline />
+
       {/* Remote video (full background) */}
       {videoCallStatus === "connected" && videoCallType === "video" && (
         <video
