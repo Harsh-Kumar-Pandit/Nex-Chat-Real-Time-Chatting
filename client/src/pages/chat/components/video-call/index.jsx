@@ -8,6 +8,8 @@ import {
   MdCallEnd,
   MdMic,
   MdMicOff,
+  MdScreenShare,
+  MdStopScreenShare,
   MdVideocam,
   MdVideocamOff,
 } from "react-icons/md";
@@ -66,8 +68,11 @@ const VideoCall = () => {
   const remoteVideoRef = useRef(null);
   const remoteAudioRef = useRef(null);
   const remoteStreamRef = useRef(null);
+  const cameraStreamRef = useRef(null);
+  const screenStreamRef = useRef(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const callTimerRef = useRef(null);
 
@@ -84,6 +89,11 @@ const VideoCall = () => {
       peerConnectionRef.current = null;
     }
     remoteStreamRef.current = null;
+    cameraStreamRef.current = null;
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach((track) => track.stop());
+      screenStreamRef.current = null;
+    }
     const { localStream: currentLocalStream } = useAppStore.getState();
     if (currentLocalStream) {
       currentLocalStream.getTracks().forEach((track) => track.stop());
@@ -92,6 +102,7 @@ const VideoCall = () => {
     setCallDuration(0);
     setIsMuted(false);
     setIsCameraOff(false);
+    setIsScreenSharing(false);
     endVideoCall();
   }, [endVideoCall]);
 
@@ -187,6 +198,7 @@ const VideoCall = () => {
           return;
         }
         setLocalStream(stream);
+        cameraStreamRef.current = stream;
         const pc = createPeerConnection();
         stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
@@ -331,6 +343,7 @@ const VideoCall = () => {
         audio: true,
       });
       setLocalStream(stream);
+      cameraStreamRef.current = stream;
       const pc = createPeerConnection();
       stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
@@ -390,6 +403,73 @@ const VideoCall = () => {
       setIsCameraOff(!isCameraOff);
     }
   };
+
+  const stopScreenShare = useCallback(async () => {
+    const pc = peerConnectionRef.current;
+    const cameraStream = cameraStreamRef.current;
+    const cameraTrack = cameraStream?.getVideoTracks()?.[0];
+    const videoSender = pc?.getSenders().find((sender) => sender.track?.kind === "video");
+
+    if (videoSender && cameraTrack) {
+      await videoSender.replaceTrack(cameraTrack);
+    }
+
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach((track) => track.stop());
+      screenStreamRef.current = null;
+    }
+
+    if (cameraStream) {
+      setLocalStream(cameraStream);
+    }
+
+    setIsScreenSharing(false);
+  }, [setLocalStream]);
+
+  const toggleScreenShare = useCallback(async () => {
+    if (isScreenSharing) {
+      try {
+        await stopScreenShare();
+      } catch (err) {
+        console.error("Failed to stop screen share:", err);
+      }
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getDisplayMedia) {
+      console.error("Screen sharing is not supported in this browser.");
+      return;
+    }
+
+    try {
+      const displayStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+      });
+      const screenTrack = displayStream.getVideoTracks()?.[0];
+      const pc = peerConnectionRef.current;
+      const videoSender = pc?.getSenders().find((sender) => sender.track?.kind === "video");
+
+      if (!screenTrack || !videoSender) {
+        displayStream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+
+      await videoSender.replaceTrack(screenTrack);
+
+      const audioTracks = localStream?.getAudioTracks?.() ?? [];
+      setLocalStream(new MediaStream([screenTrack, ...audioTracks]));
+      screenStreamRef.current = displayStream;
+      setIsScreenSharing(true);
+
+      screenTrack.onended = () => {
+        stopScreenShare().catch((err) => {
+          console.error("Failed to restore camera after screen sharing:", err);
+        });
+      };
+    } catch (err) {
+      console.error("Failed to start screen share:", err);
+    }
+  }, [isScreenSharing, localStream, setLocalStream, stopScreenShare]);
 
   const formatDuration = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -538,6 +618,24 @@ const VideoCall = () => {
                 <MdVideocamOff className="text-white text-2xl" />
               ) : (
                 <MdVideocam className="text-white text-2xl" />
+              )}
+            </button>
+          )}
+
+          {videoCallStatus === "connected" && videoCallType === "video" && (
+            <button
+              onClick={toggleScreenShare}
+              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
+                isScreenSharing
+                  ? "bg-green-500/80 hover:bg-green-500"
+                  : "bg-white/10 hover:bg-white/20"
+              }`}
+              title={isScreenSharing ? "Stop sharing" : "Share screen"}
+            >
+              {isScreenSharing ? (
+                <MdStopScreenShare className="text-white text-2xl" />
+              ) : (
+                <MdScreenShare className="text-white text-2xl" />
               )}
             </button>
           )}
