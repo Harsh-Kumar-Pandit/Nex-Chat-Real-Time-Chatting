@@ -67,6 +67,11 @@ const VideoCall = () => {
   }, [endVideoCall]);
 
   const handleEndCall = useCallback(() => {
+    if (!socket) {
+      cleanupCall();
+      return;
+    }
+
     const { videoCallData: currentCallData } = useAppStore.getState();
     if (currentCallData) {
       socket.emit("call-ended", { to: currentCallData._id });
@@ -132,6 +137,7 @@ const VideoCall = () => {
           to: videoCallData._id,
           from: userInfo.id,
           offer,
+          callType: videoCallType,
           callerInfo: {
             _id: userInfo.id,
             email: userInfo.email,
@@ -246,6 +252,11 @@ const VideoCall = () => {
   }, [remoteStream]);
 
   const handleAcceptCall = async () => {
+    if (!socket || !videoCallData || !incomingOffer) {
+      cleanupCall();
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: videoCallType === "video",
@@ -283,6 +294,11 @@ const VideoCall = () => {
   };
 
   const handleRejectCall = () => {
+    if (!socket || !videoCallData) {
+      cleanupCall();
+      return;
+    }
+
     socket.emit("call-rejected", { to: videoCallData._id });
     cleanupCall();
   };

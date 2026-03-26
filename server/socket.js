@@ -3,9 +3,26 @@ import Message from "./models/MessageModal.js";
 import Channel from "./models/ChannelModel.js";
 
 const setupSocket = (server, app) => {
+  const allowedOrigins = (process.env.ORIGIN || "http://localhost:5173,http://localhost:5174")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const isAllowedOrigin = (requestOrigin) => {
+    if (!requestOrigin) return true;
+    if (allowedOrigins.includes(requestOrigin)) return true;
+    return /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(requestOrigin);
+  };
+
   const io = new SocketIoServer(server, {
     cors: {
-      origin: process.env.ORIGIN,
+      origin: (requestOrigin, callback) => {
+        if (isAllowedOrigin(requestOrigin)) {
+          callback(null, true);
+          return;
+        }
+
+        callback(new Error(`CORS blocked for origin: ${requestOrigin}`));
+      },
       methods: ["GET", "POST"],
       credentials: true,
     },
@@ -89,13 +106,14 @@ const setupSocket = (server, app) => {
 
     // Video call signaling
     socket.on("call-user", (data) => {
-      const { to, offer, from, callerInfo } = data;
+      const { to, offer, from, callerInfo, callType } = data;
       const recipientSocketId = userSocketMap.get(to);
       if (recipientSocketId) {
         io.to(recipientSocketId).emit("incoming-call", {
           from,
           offer,
           callerInfo,
+          callType,
         });
       } else {
         socket.emit("call-not-available", { to });
