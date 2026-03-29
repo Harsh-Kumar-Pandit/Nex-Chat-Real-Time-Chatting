@@ -71,19 +71,7 @@ const ChatHeader = ({ onInfoClick, infoOpen }) => {
       </button>
 
       <div className="flex items-center gap-2">
-        {!isChannel && (
-          <button
-            onClick={() => {
-              setVideoCallData(selectedChatData);
-              setVideoCallType("video");
-              setVideoCallStatus("outgoing");
-            }}
-            className="w-9 h-9 rounded-xl text-white/30 hover:text-purple-400 hover:bg-purple-500/[0.08] flex items-center justify-center transition-all duration-200 shrink-0"
-            title="Video Call"
-          >
-         
-          </button>
-        )}
+    
 
         <button
           onClick={closeChat}
