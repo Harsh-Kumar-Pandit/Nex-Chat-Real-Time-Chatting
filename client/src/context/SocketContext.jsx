@@ -115,24 +115,9 @@ export const SocketProvider = ({ children }) => {
       if (addChannel) addChannel(channel);
     };
 
-    const handleIncomingCall = ({ offer, callerInfo, callType }) => {
-      const {
-        setVideoCallStatus,
-        setVideoCallData,
-        setIncomingOffer,
-        setVideoCallType,
-      } =
-        useAppStore.getState();
-      setVideoCallData(callerInfo);
-      setIncomingOffer(offer);
-      setVideoCallType(callType ?? "video");
-      setVideoCallStatus("incoming");
-    };
-
     newSocket.on("receiveMessage", handleReceiveMessage);
     newSocket.on("receiveChannelMessage", handleReceiveChannelMessage);
     newSocket.on("newChannel", handleNewChannel);
-    newSocket.on("incoming-call", handleIncomingCall);
 
     setSocket(newSocket);
 
@@ -140,7 +125,6 @@ export const SocketProvider = ({ children }) => {
       newSocket.off("receiveMessage", handleReceiveMessage);
       newSocket.off("receiveChannelMessage", handleReceiveChannelMessage);
       newSocket.off("newChannel", handleNewChannel);
-      newSocket.off("incoming-call", handleIncomingCall);
       newSocket.disconnect();
     };
   }, [userInfo]);
