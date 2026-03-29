@@ -103,7 +103,6 @@ const setupSocket = (server, app) => {
     }
     socket.on("sendMessage", sendMessage);
     socket.on("sendChannelMessage", sendChannelMessage);
-
     socket.on("disconnect", () => handleDisconnect(socket));
   });
 
