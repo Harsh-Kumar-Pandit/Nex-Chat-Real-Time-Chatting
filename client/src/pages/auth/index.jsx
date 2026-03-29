@@ -16,6 +16,7 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { setUserInfo } = useAppStore();
 
@@ -80,6 +81,7 @@ export default function Auth() {
   const handleLogin = async (e) => {
     e.preventDefault();
     if (!validateLogin()) return;
+    setLoading(true)
     try {
       const response = await apiClient.post(
         LOGIN_ROUTE,
@@ -104,12 +106,15 @@ export default function Auth() {
       } else {
         toast.error("Server not reachable");
       }
+    } finally{
+      setLoading(false);
     }
   };
 
   const handleSignup = async (e) => {
     e.preventDefault();
     if (!validateSignup()) return;
+    setLoading(true)
     try {
       const response = await apiClient.post(
         SIGNUP_ROUTE,
@@ -130,6 +135,8 @@ export default function Auth() {
       } else {
         toast.error("Server not reachable");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -228,7 +235,15 @@ export default function Auth() {
                       onChange={(e) => setPassword(e.target.value)}
                     />
                   </div>
-                  <Button className="auth-btn">Sign in to NexChat</Button>
+                  <Button className="auth-btn" disabled={loading}>{loading? ( <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+        style={{ animation: "spin 1s linear infinite" }}>
+        <circle cx="12" cy="12" r="10" stroke="currentColor" 
+          strokeWidth="3" strokeDasharray="40" strokeDashoffset="10"
+          strokeLinecap="round"/>
+      </svg>
+      Signing in...
+    </span>):"Sign in to NexChat"}</Button>
                   <p className="forgot-link">Forgot password?</p>
                 </form>
               </TabsContent>
@@ -264,7 +279,20 @@ export default function Auth() {
                       onChange={(e) => setConfirmPassword(e.target.value)}
                     />
                   </div>
-                  <Button className="auth-btn">Create Account</Button>
+                  <Button className="auth-btn" disabled={loading}>
+  {loading ? (
+    <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+        style={{ animation: "spin 1s linear infinite" }}>
+        <circle cx="12" cy="12" r="10" stroke="currentColor"
+          strokeWidth="3" strokeDasharray="40" strokeDashoffset="10"
+          strokeLinecap="round"/>
+      </svg>
+      Creating account...
+    </span>
+  ) : "Create Account"}
+</Button>
+
                 </form>
               </TabsContent>
             </Tabs>

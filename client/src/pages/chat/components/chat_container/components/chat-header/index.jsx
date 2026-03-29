@@ -69,12 +69,14 @@ const ChatHeader = ({ onInfoClick, infoOpen }) => {
         </div>
       </button>
 
-      <button
-        onClick={closeChat}
-        className="w-9 h-9 rounded-xl text-white/30 hover:text-red-400 hover:bg-red-500/[0.08] flex items-center justify-center transition-all duration-200 shrink-0"
-      >
-        <RiCloseFill className="text-xl" />
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={closeChat}
+          className="w-9 h-9 rounded-xl text-white/30 hover:text-red-400 hover:bg-red-500/[0.08] flex items-center justify-center transition-all duration-200 shrink-0"
+        >
+          <RiCloseFill className="text-xl" />
+        </button>
+      </div>
     </div>
   );
 };

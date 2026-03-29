@@ -1,5 +1,5 @@
 import { useAppStore } from "@/store";
-import { Avatar, AvatarImage } from "@radix-ui/react-avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
 import { getColor } from "@/lib/utils";
 import { HOST } from "@/utils/constants";
 
@@ -41,7 +41,7 @@ const ContactList = ({ contacts = [], isChannel = false }) => {
           ? lastMsg.messageType === "file"
             ? "📎 File"
             : lastMsg.content?.length > 28
-            ? lastMsg.content.slice(0, 28) + "…"
+            ? lastMsg.content.slice(0, 28) + "..."
             : lastMsg.content
           : null;
 
@@ -55,19 +55,19 @@ const ContactList = ({ contacts = [], isChannel = false }) => {
             <div className="flex gap-3 items-center">
 
               {!isChannel && (
+                // ✅ AvatarFallback shows initial when image is missing or broken
                 <Avatar className="h-10 w-10 rounded-full overflow-hidden shrink-0">
-                  {contact.image ? (
-                    <AvatarImage
-                      src={`${HOST}/${contact.image}`}
-                      alt="profile"
-                      className="object-cover w-full h-full"
-                    />
-                  ) : (
-                    <div className={`uppercase h-10 w-10 text-lg border flex items-center justify-center rounded-full
-                      ${isActive ? "border-white/30 text-white" : getColor(contact.color)}`}>
-                      {initial}
-                    </div>
-                  )}
+                  <AvatarImage
+                    src={contact.image ? `${HOST}/${contact.image}` : undefined}
+                    alt="profile"
+                    className="object-cover w-full h-full"
+                  />
+                  <AvatarFallback
+                    className={`uppercase h-10 w-10 text-lg border flex items-center justify-center rounded-full
+                      ${isActive ? "border-white/30 text-white bg-white/10" : getColor(contact.color)}`}
+                  >
+                    {initial}
+                  </AvatarFallback>
                 </Avatar>
               )}
 

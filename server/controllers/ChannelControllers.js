@@ -15,13 +15,28 @@ export const createChannel = async (req, res) => {
       return res.status(400).send("Some members are not valid users.");
 
     const allMembers = [...new Set([...members, userId])];
-
     const newChannel = new Channel({ name, members: allMembers, admin: userId });
     await newChannel.save();
 
     const populatedChannel = await Channel.findById(newChannel._id)
       .populate("members", "firstName lastName email image color")
       .populate("admin", "firstName lastName email");
+
+    // ✅ Emit to all members so they see the channel instantly without refresh
+    const io = req.app.get("io");
+    const userSocketMap = req.app.get("userSocketMap");
+
+    if (io && userSocketMap) {
+      allMembers.forEach((memberId) => {
+        const memberIdStr = memberId.toString();
+        // Don't notify the creator — they already get it from the API response
+        if (memberIdStr === userId.toString()) return;
+        const socketId = userSocketMap.get(memberIdStr);
+        if (socketId) {
+          io.to(socketId).emit("newChannel", populatedChannel);
+        }
+      });
+    }
 
     return res.status(201).json({ channel: populatedChannel });
   } catch (error) {
@@ -33,7 +48,6 @@ export const createChannel = async (req, res) => {
 export const getUserChannels = async (req, res) => {
   try {
     const userId = new mongoose.Types.ObjectId(req.userId);
-
     const channels = await Channel.find({
       $or: [{ admin: userId }, { members: userId }],
     })
@@ -71,7 +85,6 @@ export const getUserChannels = async (req, res) => {
 export const getChannelMessages = async (req, res) => {
   try {
     const { channelId } = req.params;
-
     const channel = await Channel.findById(channelId).populate({
       path: "messages",
       populate: {
@@ -79,9 +92,7 @@ export const getChannelMessages = async (req, res) => {
         select: "firstName lastName email image color _id",
       },
     });
-
     if (!channel) return res.status(404).send("Channel not found.");
-
     return res.status(200).json({ messages: channel.messages });
   } catch (error) {
     console.log(error);

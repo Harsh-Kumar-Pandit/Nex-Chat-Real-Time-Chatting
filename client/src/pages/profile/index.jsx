@@ -16,6 +16,9 @@ import {
 } from "@/utils/constants";
 
 const Profile = () => {
+  const [imageUploading, setImageUploading] = useState(false);
+const [imageDeleting, setImageDeleting] = useState(false);
+
   const navigate = useNavigate();
   const { userInfo, setUserInfo } = useAppStore();
 
@@ -77,6 +80,7 @@ const Profile = () => {
   const handelImageChange = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
+    setImageUploading(true);
     try {
       const formData = new FormData();
       formData.append("profile-image", file);
@@ -91,11 +95,14 @@ const Profile = () => {
     } catch (error) {
       toast.error("Upload failed");
       console.error(error);
+    } finally {
+      setImageUploading(false);
     }
   };
 
   const handelDeleteImage = async () => {
     if (!image || !confirm("Remove profile image?")) return;
+    setImageDeleting(true);
     try {
       const response = await apiClient.delete(REMOVE_PROFILE_IMAGE_ROUTE, {
         withCredentials: true,
@@ -107,6 +114,8 @@ const Profile = () => {
       }
     } catch (error) {
       toast.error("Failed to remove image");
+    } finally {
+      setImageDeleting(false);
     }
   };
 
@@ -158,7 +167,13 @@ const Profile = () => {
                 className="relative cursor-pointer group"
                 onMouseEnter={() => setHovered(true)}
                 onMouseLeave={() => setHovered(false)}
-                onClick={image ? handelDeleteImage : handelFileInputClick}
+               onClick={
+    imageUploading || imageDeleting
+      ? undefined                       
+      : image
+      ? handelDeleteImage
+      : handelFileInputClick
+  }
               >
                 <div className="absolute -inset-[3px] rounded-full border border-violet-500/30" />
 
@@ -179,35 +194,50 @@ const Profile = () => {
                 </Avatar>
 
                 <div
-                  className={`
-    absolute inset-0 z-20 rounded-full flex flex-col items-center justify-center gap-1.5
-    bg-black/65 backdrop-blur-[2px]
-    transition-all duration-200
+    className={`
+      absolute inset-0 z-20 rounded-full flex flex-col items-center justify-center gap-1.5
+      bg-black/65 backdrop-blur-[2px]
+      transition-all duration-200
+      ${imageUploading || imageDeleting
+        ? "opacity-100"                 
+        : "opacity-100"
+      }
+    `}
+  >
+    {imageUploading || imageDeleting ? (
+    <>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+          style={{ animation: "spin 1s linear infinite" }}>
+          <circle cx="12" cy="12" r="10" stroke="white"
+            strokeWidth="3" strokeDasharray="40" strokeDashoffset="10"
+            strokeLinecap="round" opacity="0.8"/>
+        </svg>
+        <span className="text-white/60 text-[10px] font-medium tracking-wide uppercase">
+          {imageUploading ? "Uploading..." : "Removing..."}
+        </span>
+      </>
+    ) : (      <>
+        {image ? (
+          <FaTrash className="text-white/90 text-lg" />
+        ) : (
+          <FaPlus className="text-white/90 text-lg" />
+        )}
+        <span className="text-white/60 text-[10px] font-medium tracking-wide uppercase">
+          {image ? "Remove" : "Upload"}
+        </span>
+      </>
+    )}
+  </div>
 
-    opacity-100 md:opacity-0
-    md:group-hover:opacity-100
-  `}
-                >
-                  {image ? (
-                    <FaTrash className="text-white/90 text-lg" />
-                  ) : (
-                    <FaPlus className="text-white/90 text-lg" />
-                  )}
-                  <span className="text-white/60 text-[10px] font-medium tracking-wide uppercase">
-                    {image ? "Remove" : "Upload"}
-                  </span>
-                </div>
-
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  className="hidden"
-                  onChange={handelImageChange}
-                  name="profile-image"
-                  accept=".png,.jpg,.jpeg,.svg,.webp"
-                />
-              </div>
-
+  <input
+    type="file"
+    ref={fileInputRef}
+    className="hidden"
+    onChange={handelImageChange}
+    name="profile-image"
+    accept=".png,.jpg,.jpeg,.svg,.webp"
+  />
+</div>
               <div className="flex flex-col items-center gap-2.5">
                 <span className="text-white/25 text-[9px] uppercase tracking-[0.15em] font-medium">
                   Upload Image

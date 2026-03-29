@@ -426,22 +426,6 @@ body {
 .contacts-scroll::-webkit-scrollbar-thumb:hover {
   background: rgba(139, 92, 246, 0.6);
 }
-
-
-.contacts-scroll::-webkit-scrollbar {
-  width: 4px;
-}
-.contacts-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-.contacts-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 99px;
-}
-.contacts-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-
 .messages-scroll::-webkit-scrollbar {
   width: 4px;
 }
@@ -455,4 +439,10 @@ body {
 }
 .messages-scroll::-webkit-scrollbar-thumb:hover {
   background: rgba(132, 23, 255, 0.55);
+}
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .message-bar-safe {
+    padding-bottom: max(env(safe-area-inset-bottom), 12px);
+  }
 }
