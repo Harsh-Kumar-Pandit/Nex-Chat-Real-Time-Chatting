@@ -36,8 +36,7 @@ const ContactsContainer = () => {
   }, []);
 
   return (
-    <div className="relative flex flex-col w-full md:w-[35vw] lg:w-[30vw] xl:w-[20vw] min-w-[260px] h-screen bg-[#13141c] border-r border-white/[0.06]">
-
+<div className="relative flex flex-col w-full md:w-[35vw] lg:w-[30vw] xl:w-[20vw] min-w-[260px] h-full bg-[#13141c] border-r border-white/[0.06]">
       <div className="px-5 pt-5 pb-4 shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"

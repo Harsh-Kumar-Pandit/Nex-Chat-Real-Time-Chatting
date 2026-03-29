@@ -296,8 +296,8 @@ const MessageContainer = () => {
 
   return (
     <>
-      <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-0.5
-        scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent hover:scrollbar-thumb-white/20">
+      <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-0.5 messages-scroll">
+
 
         {renderIntroBanner()}
 
